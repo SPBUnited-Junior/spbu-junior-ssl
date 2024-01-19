@@ -14,6 +14,14 @@ from enum import Enum
 #!v DEBUG ONLY
 import time
 
+class goalKeeper:
+    def __init__(self):
+        self.p1 = aux.Point(0,0)
+        self.p2 = aux.Point(0,0)
+        self.gotPoint = False
+        self.time_start = time.time()
+        self.intersection_point = aux.Point(0,0)
+
 class States(Enum):
     DEBUG = 0
     DEFENCE = 1
@@ -47,6 +55,11 @@ class Strategy:
         self.goalUp = 500
         self.goalDown = -500
 
+        self.gk = goalKeeper()
+        ### goalkeeper strategy
+        #self.gotPoint = False
+        #self.time_start = time.time()
+
     def process(self, field: field.Field):
         """
         Рассчитать конечные точки для каждого робота
@@ -57,12 +70,25 @@ class Strategy:
             waypoints[i] = waypoint
 
         self.run(field, waypoints)
+        self.goalkeeperProcced(field, waypoints)
         #print(waypoints)
-
+        
         return waypoints
 
     def distance(self, p1, p2):
         return math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2)
+    
+    def get_intersection(self, p1, p2, p3, p4, old_point):
+        denom = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x)
+
+        if denom == 0:
+            return old_point
+        
+        px = ((p1.x * p2.y - p1.y * p2.x) * (p3.x - p4.x) - (p1.x - p2.x) * (p3.x * p4.y - p3.y * p4.x)) / denom
+        py = ((p1.x * p2.y - p1.y * p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x * p4.y - p3.y * p4.x)) / denom
+
+        return aux.Point(-5000, max(-1200, min(1200, py)))
+    
 
     def getIndexHolding(self, field: field.Field): # Возвращает индекс атакующего робота (для врагов индекс + 3), None -- в случае неопределенного статуса
         minDistEnemy = 4500
@@ -88,6 +114,25 @@ class Strategy:
         else: 
             return None
 
+    def goalkeeperProcced(self, field: field.Field, waypoints):
+        goalpoint1 = aux.Point(900, -1200)
+        goalpoint2 = aux.Point(900, 1200)
+        
+
+        if not self.gk.gotPoint:
+            self.gk.p1 = field.ball.getPos()
+            self.gk.time_start = time.time()
+            self.gk.gotPoint = True
+        else:
+            if (time.time() - self.gk.time_start) > 0.05:
+                self.gk.p2 = field.ball.getPos()
+                #print(self.gk.p1.x, self.gk.p1.y, self.gk.p2.x, self.gk.p2.y)
+                
+                self.gk.intersection_point = self.get_intersection(self.gk.p1, self.gk.p2, goalpoint1, goalpoint2, self.gk.intersection_point)
+                print(self.gk.intersection_point.x, self.gk.intersection_point.y)
+                self.gk.gotPoint = False
+                waypoints[0] = wp.Waypoint(self.gk.intersection_point, 0, wp.WType.S_ENDPOINT)
+
     def run(self, field: field.Field, waypoints):
         # field.ball.getPos() - координаты мяча
         # field.enemies[i].getPos() - координаты робота соперника с id i
@@ -95,41 +140,30 @@ class Strategy:
         # waypoints[i] = wp.Waypoint(field.allies[i].getPos(), field.allies[i].getAngle(), wp.WType.S_ENDPOINT) - задать точку для езды. Куда, с каким углом, тип.
 
         goal_pos = aux.Point(-6000, 0)
-        enemy_pos = field.enemies[0].getPos()
-        self_pos = field.allies[0].getPos()
-
-        # print(enemy_pos.x, enemy_pos.y)
-       
-        # print(self_pos.x, self_pos.y, sep = ", ", end = "\n")
-        # print(len(waypoints))
+        enemy_pos = field.allies[2].getPos()
+        self_pos = field.allies[1].getPos()
 
         alpha = math.atan2(enemy_pos.y - goal_pos.y, enemy_pos.x - goal_pos.x)
         beta = math.atan2(self_pos.y - goal_pos.y, self_pos.x - goal_pos.x) - alpha
         dist_to_goal = math.sqrt((self_pos.x - goal_pos.x) ** 2 + (self_pos.y - goal_pos.y ** 2))
-
         length = dist_to_goal * math.cos(beta)
-        #path_len = dist_to_goal * math.sin(beta)
-        #path_angle = beta + (math.pi / 2)
         path_point = aux.Point(goal_pos.x + length * math.cos(alpha), goal_pos.y + length * math.sin(alpha))
         
-        target_point = aux.Point(path_point.x + 100 * math.cos(alpha + (math.pi / 2)), path_point.y + 100 * math.sin(alpha + (math.pi / 2)))
+        #target_point = aux.Point(path_point.x + 100 * math.cos(alpha + (math.pi / 2)), path_point.y + 100 * math.sin(alpha + (math.pi / 2)))
 
-        # waypoints[0] = wp.Waypoint(aux.Point(0, 0), field.allies[0].getAngle(), wp.WType.S_ENDPOINT)
-        waypoints[0] = wp.Waypoint(path_point, alpha, wp.WType.S_ENDPOINT)
-        
+        #waypoints[1] = wp.Waypoint(path_point, alpha, wp.WType.S_ENDPOINT)
 
-        print(path_point.x, path_point.y, self_pos.x, sep = ", ", end = "\n")
+        ball_pos = field.ball.getPos()
+        self_pos = field.allies[2].getPos()
+        enemy_angle = math.atan2(0 - self_pos.y, -6000 - self_pos.x)
+        waypoints[2] = wp.Waypoint(field.ball.getPos(), enemy_angle, wp.WType.S_BALL_KICK)
 
-        # for i in range(len(waypoints)):
-        #     waypoints[i] = wp.Waypoint(aux.Point(0, 0), 0, wp.WType.S_ENDPOINT)
-            
+        #waypoints[0] = wp.Waypoint(field.ball.getPos(), math.pi / 3, wp.WType.S_BALL_KICK)
 
-        #if True: # Здесь будет условие смены атаки на защиту для данного робота
-        #    self.chooseKick(field, 0)
-        #else:
-        #    pass
+        #print(field.ball.getPos())
 
         pass
+
 
     def chooseKick(self, field: field.Field, robotInx):
         central = []
