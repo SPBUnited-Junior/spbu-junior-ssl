@@ -46,7 +46,7 @@ class Strategy:
         self.robotRadius = 200
         self.goalUp = 500
         self.goalDown = -500
-        self.angleMyRobot = aux.Point(0, 0)
+        self.angleMyRobot = 0#aux.Point(0, 0)
 
     def process(self, field: field.Field):
         """
@@ -69,7 +69,7 @@ class Strategy:
         minDistEnemy = 4500
         iEnemy = -1
         for i in range(self.n):
-            d = self.distance(field.ball.getPos(), field.enemies[i].getPos()) 
+            d = self.distance(field.ball.getPos(), poses) 
             if d < minDistEnemy:
                 minDistEnemy = d
                 iEnemy = i
@@ -82,9 +82,9 @@ class Strategy:
                 minDistAllies = d
                 iAllies = i
 
-        if minDistEnemy < minDistAllies and minDistAllies - minDistEnemy > 30:
+        if minDistAllies - minDistEnemy > 30:
             return 3 + iEnemy
-        elif minDistAllies < minDistEnemy and minDistEnemy - minDistAllies > 30:
+        elif minDistEnemy - minDistAllies > 30:
             return iAllies
         else: 
             return None
@@ -100,29 +100,30 @@ class Strategy:
 
         #print(self.pointGo.x, self.pointGo.y)
         #angBall = self.angleToBall(field.ball.getPos(), field.allies[0].getPos())
-        waypoints[0] = wp.Waypoint(field.ball.getPos(), self.angleMyRobot, wp.WType.S_BALL_GRAB)# - задать точку для езды. Куда, с каким углом, тип.
+        waypoints[0] = wp.Waypoint(field.ball.getPos(), self.angleMyRobot, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
 
     def kickToGoal(self, field: field.Field, robotInx):
         central = []
         
         myPos = field.allies[robotInx].getPos()
         ballPos = field.ball.getPos() 
-        #p = aux.Point(0, 0)
-        #print(ballPos.x, ballPos.y)
-        
-        #print("GO")
+        poses = []
+        poses.append(aux.Point(4500, self.goalUp))
+
         for i in range(self.n):
-            print(i)
-            #ballPos = field.ball.getPos() 
-            #print(i, ballPos.x, ballPos.y, field.enemies[i].getPos().x, field.enemies[i].getPos().y)
-            dist = self.distance(ballPos, field.enemies[i].getPos())
-            if field.enemies[i].getPos().x != ballPos.x: D = dist * (4500 - ballPos.x) / (field.enemies[i].getPos().x - ballPos.x)
+            poses.append(field.enemies[i].getPos())
+
+        poses.append(aux.Point(4500, self.goalDown))
+
+        for i in range(len(poses)):
+            dist = self.distance(ballPos, poses[i])
+            if poses[i].x != ballPos.x: D = dist * (4500 - ballPos.x) / (poses[i].x - ballPos.x)
             else: D = 1
             
             if (self.robotRadius + self.ballRadius + 20) / dist > 1: alphaNew = math.asin(1)
             else: alphaNew = math.asin((self.robotRadius + self.ballRadius + 20) / dist)
 
-            gamma = math.acos((field.enemies[i].getPos().x - ballPos.x) / dist) - alphaNew
+            gamma = math.acos((poses[i].x - ballPos.x) / dist) - alphaNew
             
             downDist = math.sqrt(D**2 - (4500 - ballPos.x)**2) - (4500 - ballPos.x) * math.tan(gamma) #HASHUV
             
@@ -132,14 +133,14 @@ class Strategy:
             
             upDist = D * math.sin(alphaNew) / math.sin(math.pi - 2 * alphaNew - bettaNew) #HASHUV
 
-            if ballPos.y > field.enemies[i].getPos().y: 
+            if ballPos.y > poses[i].y: 
                 (downDist, upDist) = (upDist, downDist)
                 ycc = ballPos.y - D * math.sin(alphaNew + gamma)
             else:
                 ycc = ballPos.y + D * math.sin(alphaNew + gamma)
 
 
-            if ycc < self.goalDown or ycc > self.goalUp:
+            if ycc > self.goalDown and ycc < self.goalUp:
                 central.append([ycc, ycc + upDist, ycc - downDist])
         
         central = sorted(central, key=lambda x: x[0])
@@ -147,6 +148,7 @@ class Strategy:
         maxiAngle = 0
         rememberI = -1
         for i in range(len(central) - 1):
+            #print(lookUp)
             lookUp = central[i + 1][2]
             lookDown = central[i][1]
 
@@ -178,8 +180,11 @@ class Strategy:
             self.xR = 4500
             self.yR = 0
         
-        #print(self.xR, self.yR)
-
+        print(self.xR, self.yR)
+        
+        return math.pi + math.atan2(myPos.y - self.yR, myPos.x - self.xR)
+        
+        '''
         xTo = 0
         yTo = 0
         if ballPos.x - self.xR != 0: k = (ballPos.y - self.yR) / (ballPos.x - self.xR)
@@ -202,5 +207,4 @@ class Strategy:
             else: yTo = myPos.y - hyp * math.sin(sigma2)
             xTo = myPos.x - hyp * math.cos(sigma2)
         
-        return math.atan2(self.yR - yTo, self.xR - xTo)#aux.Point(xTo, yTo)
-
+        return math.atan2(self.yR - yTo, self.xR - xTo)#aux.Point(xTo, yTo)'''

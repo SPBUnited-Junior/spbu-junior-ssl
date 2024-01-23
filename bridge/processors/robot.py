@@ -222,10 +222,7 @@ class Robot(entity.Entity):
 
             if end_point.type == wp.WType.S_BALL_KICK:
                 # self.autoKick = 2 if self.rId == const.GK else 1
-                if self._pos.x * field.side > 500:
-                    self.autoKick = 2
-                else:
-                    self.autoKick = 1
+                self.autoKick = 1
             else:
                 self.autoKick = 0
 
