@@ -69,7 +69,7 @@ class Strategy:
         minDistEnemy = 4500
         iEnemy = -1
         for i in range(self.n):
-            d = self.distance(field.ball.getPos(), poses) 
+            d = self.distance(field.ball.getPos(), field.enemies[i].getPos()) 
             if d < minDistEnemy:
                 minDistEnemy = d
                 iEnemy = i
@@ -96,95 +96,105 @@ class Strategy:
         return math.atan2(ball.y - myPos.y, ball.x - myPos.x)
 
     def run(self, field: field.Field, waypoints):
-        if self.trueBallCoordinate(field.ball.getPos()): self.angleMyRobot = self.kickToGoal(field, 0) 
+        if (field.ball.getPos().x == 0 and field.ball.getPos().y == 0) \
+            or self.trueBallCoordinate(field.ball.getPos()): self.angleMyRobot = self.kickToGoal(field, 0) 
 
         #print(self.pointGo.x, self.pointGo.y)
         #angBall = self.angleToBall(field.ball.getPos(), field.allies[0].getPos())
+        #print(field.ball.getPos().x, field.ball.getPos().y)
         waypoints[0] = wp.Waypoint(field.ball.getPos(), self.angleMyRobot, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
 
     def kickToGoal(self, field: field.Field, robotInx):
-        central = []
-        
         myPos = field.allies[robotInx].getPos()
         ballPos = field.ball.getPos() 
+
         poses = []
         poses.append(aux.Point(4500, self.goalUp))
-
         for i in range(self.n):
             poses.append(field.enemies[i].getPos())
-
         poses.append(aux.Point(4500, self.goalDown))
-
+        
+        central = []
+        self.xR = 4500
         for i in range(len(poses)):
+            #print("COORD:", poses[i].x, poses[i].y)
             dist = self.distance(ballPos, poses[i])
-            if poses[i].x != ballPos.x: D = dist * (4500 - ballPos.x) / (poses[i].x - ballPos.x)
-            else: D = 1
+            #print()
+            if poses[i].x != ballPos.x: D = abs(dist * (4500 - ballPos.x) / (poses[i].x - ballPos.x))
+            else: D = dist
             
-            if (self.robotRadius + self.ballRadius + 20) / dist > 1: alphaNew = math.asin(1)
-            else: alphaNew = math.asin((self.robotRadius + self.ballRadius + 20) / dist)
-
-            gamma = math.acos((poses[i].x - ballPos.x) / dist) - alphaNew
+            if (20 + self.robotRadius) / dist > 1: alphaNew = math.asin(1)
+            else: alphaNew = math.asin((20 + self.robotRadius) / dist)
             
+            gamma = math.acos(abs(poses[i].x - ballPos.x) / dist) - alphaNew
             downDist = math.sqrt(D**2 - (4500 - ballPos.x)**2) - (4500 - ballPos.x) * math.tan(gamma) #HASHUV
             
-            if abs(D * math.sin(alphaNew) / downDist) <= 1:  bettaNew = math.asin(D * math.sin(alphaNew) / downDist) 
-            elif math.sin(alphaNew) > 0: bettaNew = math.asin(1)
+            if abs(D * math.sin(alphaNew) / downDist) <= 1:
+                bettaNew = math.asin(D * math.sin(alphaNew) / downDist) 
+            elif math.sin(alphaNew) > 1: bettaNew = math.asin(1)
             else: bettaNew = math.asin(-1)
             
-            upDist = D * math.sin(alphaNew) / math.sin(math.pi - 2 * alphaNew - bettaNew) #HASHUV
+            #upDist = D * math.sin(alphaNew) / math.sin(math.pi - 2 * alphaNew - bettaNew) #HASHUV
+            upDist = (4500 - ballPos.x) * math.tan(gamma + 2 * alphaNew) - (4500 - ballPos.x) * math.tan(gamma) - downDist
 
             if ballPos.y > poses[i].y: 
-                (downDist, upDist) = (upDist, downDist)
+                #(downDist, upDist) = (upDist, downDist)
                 ycc = ballPos.y - D * math.sin(alphaNew + gamma)
             else:
+                (downDist, upDist) = (upDist, downDist) 
                 ycc = ballPos.y + D * math.sin(alphaNew + gamma)
 
-
+            #if ycc + upDist > self.goalDown and ycc - downDist  < self.goalUp:
             if ycc > self.goalDown and ycc < self.goalUp:
                 central.append([ycc, ycc + upDist, ycc - downDist])
         
-        central = sorted(central, key=lambda x: x[0])
+        central = sorted(central, key = lambda x: x[0])
+        for i in range(len(central)):
+            print(central[i][0], central[i][1], central[i][2])
 
-        maxiAngle = 0
-        rememberI = -1
+        maxiAngle = -2 * math.pi
+        rememberI = -2
         for i in range(len(central) - 1):
-            #print(lookUp)
             lookUp = central[i + 1][2]
             lookDown = central[i][1]
 
-            bokDown = math.sqrt((myPos.x - 4500)**2 + (myPos.y - lookDown)**2)
-            bokUp = math.sqrt((myPos.x - 4500)**2 + (myPos.y - lookUp)**2)
-            v1 = aux.Point(4500 - myPos.x, lookDown - myPos.y)
-            v2 = aux.Point(4500 - myPos.x, lookUp - myPos.y)
-            
-            if (v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp) > 1: angleBetweenVectors = math.acos(1)
-            elif (v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp) < -1: angleBetweenVectors = math.acos(-1)
-            else: angleBetweenVectors = math.acos((v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp))
+            #print(lookUp, lookDown)
+            if lookUp < lookDown: continue
 
-            if angleBetweenVectors > maxiAngle:
-                maxiAngle = angleBetweenVectors
-                rememberI = i
+            if lookDown < lookUp:
+                bokDown = math.sqrt((ballPos.x - 4500)**2 + (ballPos.y - lookDown)**2)
+                bokUp = math.sqrt((ballPos.x - 4500)**2 + (ballPos.y - lookUp)**2)
+                v1 = aux.Point(4500 - ballPos.x, lookDown - ballPos.y)
+                v2 = aux.Point(4500 - ballPos.x, lookUp - ballPos.y)
+                
+                if (v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp) > 1: 
+                    angleBetweenVectors = math.acos(1)
+                elif (v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp) < -1: 
+                    angleBetweenVectors = math.acos(-1)
+                else: 
+                    angleBetweenVectors = math.acos((v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp))
+
+                if angleBetweenVectors > maxiAngle:
+                    maxiAngle = angleBetweenVectors
+                    rememberI = i
             
-        if rememberI != -1:
+        if rememberI != -2:
             lookUp = central[rememberI + 1][2]
             lookDown = central[rememberI][1]
-            bokDown = math.sqrt((myPos.x - 4500)**2 + (myPos.y - lookDown)**2)
-            bokUp = math.sqrt((myPos.x - 4500)**2 + (myPos.y - lookUp)**2)
-            
+
+            bokDown = math.sqrt((ballPos.x - 4500)**2 + (ballPos.y - lookDown)**2)
+            bokUp = math.sqrt((ballPos.x - 4500)**2 + (ballPos.y - lookUp)**2)
             osn = lookUp - lookDown
             distUp = osn * bokUp / (bokUp + bokDown)
             
-            self.xR = 4500
             self.yR = lookUp - distUp
-        else:
-            self.xR = 4500
-            self.yR = 0
+        else: self.yR = 0
         
-        print(self.xR, self.yR)
+        print("GOAL_C: ", self.xR, self.yR)
         
-        return math.pi + math.atan2(myPos.y - self.yR, myPos.x - self.xR)
-        
-        '''
+        return math.atan2(self.yR - myPos.y, self.xR - myPos.x)
+
+        '''        
         xTo = 0
         yTo = 0
         if ballPos.x - self.xR != 0: k = (ballPos.y - self.yR) / (ballPos.x - self.xR)
@@ -207,4 +217,5 @@ class Strategy:
             else: yTo = myPos.y - hyp * math.sin(sigma2)
             xTo = myPos.x - hyp * math.cos(sigma2)
         
-        return math.atan2(self.yR - yTo, self.xR - xTo)#aux.Point(xTo, yTo)'''
+        return math.atan2(self.yR - yTo, self.xR - xTo)#aux.Point(xTo, yTo)
+        '''
