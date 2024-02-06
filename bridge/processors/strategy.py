@@ -123,8 +123,8 @@ class Strategy:
             if poses[i].x != ballPos.x: D = abs(dist * (4500 - ballPos.x) / (poses[i].x - ballPos.x))
             else: D = dist
             
-            if (20 + self.robotRadius) / dist > 1: alphaNew = math.asin(1)
-            else: alphaNew = math.asin((20 + self.robotRadius) / dist)
+            if (15 + self.robotRadius) / dist > 1: alphaNew = math.asin(1)
+            else: alphaNew = math.asin((15 + self.robotRadius) / dist)
             
             gamma = math.acos(abs(poses[i].x - ballPos.x) / dist) - alphaNew
             downDist = math.sqrt(D**2 - (4500 - ballPos.x)**2) - (4500 - ballPos.x) * math.tan(gamma) #HASHUV
@@ -145,12 +145,12 @@ class Strategy:
                 ycc = ballPos.y + D * math.sin(alphaNew + gamma)
 
             #if ycc + upDist > self.goalDown and ycc - downDist  < self.goalUp:
-            if ycc > self.goalDown and ycc < self.goalUp:
+            if ycc > self.goalDown - self.robotRadius and ycc < self.goalUp + self.robotRadius:
                 central.append([ycc, ycc + upDist, ycc - downDist])
         
         central = sorted(central, key = lambda x: x[0])
-        for i in range(len(central)):
-            print(central[i][0], central[i][1], central[i][2])
+        #for i in range(len(central)):
+        #   print(central[i][0], central[i][1], central[i][2])
 
         maxiAngle = -2 * math.pi
         rememberI = -2
@@ -193,29 +193,3 @@ class Strategy:
         print("GOAL_C: ", self.xR, self.yR)
         
         return math.atan2(self.yR - myPos.y, self.xR - myPos.x)
-
-        '''        
-        xTo = 0
-        yTo = 0
-        if ballPos.x - self.xR != 0: k = (ballPos.y - self.yR) / (ballPos.x - self.xR)
-        else: k = 0
-        b = self.yR - k * self.xR
-
-        xTo = ballPos.x - (self.robotRadius + self.ballRadius + 20)
-        yTo = k * xTo + b
-
-        if myPos.x > ballPos.x and abs(myPos.x - ballPos.x) > (self.robotRadius + self.ballRadius + 20): #D > 50:
-            d = math.sqrt((ballPos.x - myPos.x)**2 + (ballPos.y - myPos.y)**2)
-            rr = self.robotRadius + self.ballRadius + 300 #2
-            if rr / d > 1: d = rr
-            if d**2 - rr**2 >= 0: hyp = math.sqrt(d**2 - rr**2)
-            else: hyp = 0
-
-            alpha = math.asin(rr / d)
-            sigma2 = math.atan2(abs(ballPos.y - myPos.y), abs(ballPos.x - myPos.x)) - alpha
-            if ballPos.y > myPos.y: yTo = myPos.y + hyp * math.sin(sigma2)
-            else: yTo = myPos.y - hyp * math.sin(sigma2)
-            xTo = myPos.x - hyp * math.cos(sigma2)
-        
-        return math.atan2(self.yR - yTo, self.xR - xTo)#aux.Point(xTo, yTo)
-        '''
