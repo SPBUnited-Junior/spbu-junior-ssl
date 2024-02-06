@@ -95,15 +95,6 @@ class Strategy:
     def angleToBall(self, ball, myPos):
         return math.atan2(ball.y - myPos.y, ball.x - myPos.x)
 
-    def run(self, field: field.Field, waypoints):
-        if (field.ball.getPos().x == 0 and field.ball.getPos().y == 0) \
-            or self.trueBallCoordinate(field.ball.getPos()): self.angleMyRobot = self.kickToGoal(field, 0) 
-
-        #print(self.pointGo.x, self.pointGo.y)
-        #angBall = self.angleToBall(field.ball.getPos(), field.allies[0].getPos())
-        #print(field.ball.getPos().x, field.ball.getPos().y)
-        waypoints[0] = wp.Waypoint(field.ball.getPos(), self.angleMyRobot, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
-
     def kickToGoal(self, field: field.Field, robotInx):
         myPos = field.allies[robotInx].getPos()
         ballPos = field.ball.getPos() 
@@ -190,6 +181,58 @@ class Strategy:
             self.yR = lookUp - distUp
         else: self.yR = 0
         
-        print("GOAL_C: ", self.xR, self.yR)
-        
         return math.atan2(self.yR - myPos.y, self.xR - myPos.x)
+
+    def passBall(self, field: field.Field, robotInx):
+        myPos = field.ball.getPos()
+        myAngle = field.allies[robotInx].getAngle()
+        passRobot = -1
+        minDist = 10000
+        for i in range(3):
+            if i != robotInx:
+                alliePos = field.allies[i].getPos()
+                allieAngle = field.allies[i].getAngle()
+                if self.canPass(field, robotInx, i) and self.distance(myPos, alliePos) < minDist:
+                    minDist = self.distance(myPos, alliePos)
+                    passRobot = i
+                    #passRobots.append(i)
+
+        return passRobot 
+
+    def canPass(self, field: field.Field, my, any):#, fromPos, formAngle, toPos, toAngle):
+        fromPos = field.allies[my].getPos()
+        toPos = field.allies[any].getPos()
+        if toPos.x != fromPos.x: kl = (toPos.y - fromPos.y) / (toPos.x - fromPos.x)
+        else: kl = 1
+        bl = fromPos.y - kl * fromPos.x
+
+        a = 1
+        b = -kl
+        c = -bl
+
+        state = True
+        for i in range(6):
+            if (i < 3 and i != my and i != any and self.intersection(a, b, c, field.allies[i].getPos())) \
+                or (i >= 3 and self.intersection(a, b, c, field.enemies[i - 3].getPos())):
+                state = False
+                break
+        
+        if state:
+            return True
+        else: return False
+    
+    def intersection(self, a, b, c, pos):
+        return abs(a * pos.x + b * pos.y + c) / math.sqrt(a**2 + b**2) < self.robotRadius + 10
+
+
+    def run(self, field: field.Field, waypoints):
+        if (field.ball.getPos().x == 0 and field.ball.getPos().y == 0) \
+            or self.trueBallCoordinate(field.ball.getPos()): self.angleMyRobot = self.kickToGoal(field, 0) 
+
+        passInd = self.passBall(field, 0)
+        print("GOOOOO")
+        if passInd != -1:
+            ang = math.atan2(field.allies[passInd].getPos().y - field.allies[0].getPos().y, field.allies[passInd].getPos().x - field.allies[0].getPos().x)
+            waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
+        else:
+            waypoints[0] = wp.Waypoint(field.ball.getPos(), 0, wp.WType.S_BALL_KICK)
