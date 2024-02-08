@@ -158,7 +158,7 @@ class Robot(entity.Entity):
             self.is_kick_commited = True
         else:
             self.is_kick_commited = False
-        print(is_dist, is_angle, is_offset)
+        #print(is_dist, is_angle, is_offset)
         return is_aligned
         
     def is_ball_in(self, field: field.Field):
@@ -200,7 +200,7 @@ class Robot(entity.Entity):
             end_point.type == wp.WType.S_BALL_GO) and \
                 dist < 1500:
 
-            print("IS KICK ALIGNED: ", self.is_kick_aligned(end_point), ",\tIS BALL GRABBED: ", self.is_ball_in(field))
+            #print("IS KICK ALIGNED: ", self.is_kick_aligned(end_point), ",\tIS BALL GRABBED: ", self.is_ball_in(field))
             
             self.posReg.select_mode(tau.Mode.SOFT)
 

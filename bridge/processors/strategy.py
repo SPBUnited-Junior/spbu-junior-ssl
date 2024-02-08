@@ -70,7 +70,7 @@ class Strategy:
             waypoints[i] = waypoint
 
         self.run(field, waypoints)
-        self.goalkeeperProcced(field, waypoints)
+        #self.goalkeeperProcced(field, waypoints)
         #print(waypoints)
         
         return waypoints
@@ -145,22 +145,25 @@ class Strategy:
 
         alpha = math.atan2(enemy_pos.y - goal_pos.y, enemy_pos.x - goal_pos.x)
         beta = math.atan2(self_pos.y - goal_pos.y, self_pos.x - goal_pos.x) - alpha
-        dist_to_goal = math.sqrt((self_pos.x - goal_pos.x) ** 2 + (self_pos.y - goal_pos.y ** 2))
-        length = dist_to_goal * math.cos(beta)
+
+        if(abs(beta) > 0.085):
+            dist_to_goal = math.sqrt((self_pos.x - goal_pos.x) ** 2 + (self_pos.y - goal_pos.y ** 2))
+            length = dist_to_goal * math.cos(beta)
+            length = min(length, math.sqrt((enemy_pos.x - goal_pos.x) ** 2 + enemy_pos.y ** 2) - 50)
+        else:
+            length = math.sqrt((enemy_pos.x - goal_pos.x) ** 2 + enemy_pos.y ** 2) - 50
+            #length = 1
+        
         path_point = aux.Point(goal_pos.x + length * math.cos(alpha), goal_pos.y + length * math.sin(alpha))
+        waypoints[1] = wp.Waypoint(path_point, alpha, wp.WType.S_ENDPOINT)
         
         #target_point = aux.Point(path_point.x + 100 * math.cos(alpha + (math.pi / 2)), path_point.y + 100 * math.sin(alpha + (math.pi / 2)))
 
-        #waypoints[1] = wp.Waypoint(path_point, alpha, wp.WType.S_ENDPOINT)
+        enemy2_pos = field.enemies[0].getPos()
+        enemy2_angle = math.atan2(0 - self_pos.y, -6000 - self_pos.x)
+        #waypoints[2] = wp.Waypoint(field.ball.getPos(), enemy_angle, wp.WType.S_BALL_KICK)
 
-        ball_pos = field.ball.getPos()
-        self_pos = field.allies[2].getPos()
-        enemy_angle = math.atan2(0 - self_pos.y, -6000 - self_pos.x)
-        waypoints[2] = wp.Waypoint(field.ball.getPos(), enemy_angle, wp.WType.S_BALL_KICK)
-
-        #waypoints[0] = wp.Waypoint(field.ball.getPos(), math.pi / 3, wp.WType.S_BALL_KICK)
-
-        #print(field.ball.getPos())
+        
 
         pass
 
