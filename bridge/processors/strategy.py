@@ -217,22 +217,25 @@ class Strategy:
                 state = False
                 break
         
-        if state:
-            return True
-        else: return False
+        #if state:
+        return state
+        #else: return False
     
     def intersection(self, a, b, c, pos):
         return abs(a * pos.x + b * pos.y + c) / math.sqrt(a**2 + b**2) < self.robotRadius + 10
-
 
     def run(self, field: field.Field, waypoints):
         if (field.ball.getPos().x == 0 and field.ball.getPos().y == 0) \
             or self.trueBallCoordinate(field.ball.getPos()): self.angleMyRobot = self.kickToGoal(field, 0) 
 
-        passInd = self.passBall(field, 0)
-        print("GOOOOO")
-        if passInd != -1:
-            ang = math.atan2(field.allies[passInd].getPos().y - field.allies[0].getPos().y, field.allies[passInd].getPos().x - field.allies[0].getPos().x)
-            waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
+        if self.distance(field.ball.getPos(), field.allies[0].getPos()) < 1.5 * self.robotRadius:
+            passInd = self.passBall(field, 0)
+            print("GOOOOO")
+            if passInd != -1:
+                ang = math.atan2(field.allies[passInd].getPos().y - field.allies[0].getPos().y, field.allies[passInd].getPos().x - field.allies[0].getPos().x)
+                waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
+            else:
+                waypoints[0] = wp.Waypoint(field.ball.getPos(), 0, wp.WType.S_BALL_KICK)
         else:
-            waypoints[0] = wp.Waypoint(field.ball.getPos(), 0, wp.WType.S_BALL_KICK)
+            ang = math.atan2(field.ball.getPos().y - field.allies[0].getPos().y, field.ball.getPos().x - field.allies[0].getPos().x)
+            waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)
