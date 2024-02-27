@@ -47,6 +47,11 @@ class Strategy:
         self.goalUp = 500
         self.goalDown = -500
         self.angleMyRobot = 0#aux.Point(0, 0)
+<<<<<<< Updated upstream
+=======
+        self.choosedKick = False
+        self.passInd = -1
+>>>>>>> Stashed changes
 
     def process(self, field: field.Field):
         """
@@ -182,7 +187,18 @@ class Strategy:
         else: self.yR = 0
         
         return math.atan2(self.yR - myPos.y, self.xR - myPos.x)
+<<<<<<< Updated upstream
 
+=======
+    
+    def between(self, posFrom, posTo, posBet):
+        xMax = max(posFrom.x, posTo.x)
+        xMin = min(posFrom.x, posTo.x)
+        yMax = max(posFrom.y, posTo.y)
+        yMin = min(posFrom.y, posTo.y)
+        return (xMin - 0.8 * self.robotRadius < posBet.x < xMax + 0.8 * self.robotRadius) \
+                and (yMin - 0.8 * self.robotRadius < posBet.y < yMax + 0.8 * self.robotRadius)
+>>>>>>> Stashed changes
     def passBall(self, field: field.Field, robotInx):
         myPos = field.ball.getPos()
         myAngle = field.allies[robotInx].getAngle()
@@ -199,13 +215,18 @@ class Strategy:
 
         return passRobot 
 
+<<<<<<< Updated upstream
     def canPass(self, field: field.Field, my, any):#, fromPos, formAngle, toPos, toAngle):
+=======
+    def canPass(self, field: field.Field, my, any):
+>>>>>>> Stashed changes
         fromPos = field.allies[my].getPos()
         toPos = field.allies[any].getPos()
         if toPos.x != fromPos.x: kl = (toPos.y - fromPos.y) / (toPos.x - fromPos.x)
         else: kl = 1
         bl = fromPos.y - kl * fromPos.x
 
+<<<<<<< Updated upstream
         a = 1
         b = -kl
         c = -bl
@@ -214,6 +235,17 @@ class Strategy:
         for i in range(6):
             if (i < 3 and i != my and i != any and self.intersection(a, b, c, field.allies[i].getPos())) \
                 or (i >= 3 and self.intersection(a, b, c, field.enemies[i - 3].getPos())):
+=======
+        a = -kl
+        b = 1
+        c = -bl
+        #print(a, b, c)
+
+        state = True
+        for i in range(6):
+            if (i < 3 and i != my and i != any and self.between(fromPos, toPos, field.allies[i].getPos()) and self.intersection(a, b, c, field.allies[i].getPos())) \
+                or (i >= 3 and self.between(fromPos, toPos, field.enemies[i - 3].getPos()) and self.intersection(a, b, c, field.enemies[i - 3].getPos())):
+>>>>>>> Stashed changes
                 state = False
                 break
         
@@ -222,6 +254,7 @@ class Strategy:
         #else: return False
     
     def intersection(self, a, b, c, pos):
+<<<<<<< Updated upstream
         return abs(a * pos.x + b * pos.y + c) / math.sqrt(a**2 + b**2) < self.robotRadius + 10
 
     def run(self, field: field.Field, waypoints):
@@ -236,6 +269,30 @@ class Strategy:
                 waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
             else:
                 waypoints[0] = wp.Waypoint(field.ball.getPos(), 0, wp.WType.S_BALL_KICK)
+=======
+        return abs(a * pos.x + b * pos.y + c) / math.sqrt(a**2 + b**2) < self.robotRadius * 0.8
+
+    def run(self, field: field.Field, waypoints):
+        #if (field.ball.getPos().x == 0 and field.ball.getPos().y == 0) \
+        #    or self.trueBallCoordinate(field.ball.getPos()): self.angleMyRobot = self.kickToGoal(field, 0) 
+
+        if not self.choosedKick and self.distance(field.ball.getPos(), field.allies[0].getPos()) < 2 * self.robotRadius:
+            self.passInd = self.passBall(field, 0)
+            self.choosedKick = True
+        elif self.choosedKick:
+            #self.passInd = self.passBall(field, 0)
+            print(self.passInd)
+
+            if self.passInd != -1:
+                ang = math.atan2(field.allies[self.passInd].getPos().y - field.allies[0].getPos().y, field.allies[self.passInd].getPos().x - field.allies[0].getPos().x)
+                waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
+            else:
+                waypoints[0] = wp.Waypoint(field.ball.getPos(), 0, wp.WType.S_BALL_KICK)
+            
+            if self.distance(field.ball.getPos(), field.allies[0].getPos()) > 2.2 * self.robotRadius:
+                self.choosedKick = False
+            #if field.is_ball_moves_to_goal(): self.choosedKick = False
+>>>>>>> Stashed changes
         else:
             ang = math.atan2(field.ball.getPos().y - field.allies[0].getPos().y, field.ball.getPos().x - field.allies[0].getPos().x)
             waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)

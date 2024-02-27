@@ -158,7 +158,7 @@ class Robot(entity.Entity):
             self.is_kick_commited = True
         else:
             self.is_kick_commited = False
-        print(is_dist, is_angle, is_offset)
+        #print(is_dist, is_angle, is_offset)
         return is_aligned
         
     def is_ball_in(self, field: field.Field):
@@ -207,7 +207,8 @@ class Robot(entity.Entity):
             if end_point.type == wp.WType.S_BALL_GO:
                 angle0 = end_point.angle
 
-            self.dribblerEnable = True
+            #self.kick_forward()
+            self.dribblerEnable = False
             self.speedDribbler = 15
             self.kickerVoltage = 15
         else:
@@ -222,7 +223,10 @@ class Robot(entity.Entity):
 
             if end_point.type == wp.WType.S_BALL_KICK:
                 # self.autoKick = 2 if self.rId == const.GK else 1
-                self.autoKick = 1
+                if self._pos.x * field.side > 500:
+                    self.autoKick = 1
+                else:
+                    self.autoKick = 1
             else:
                 self.autoKick = 0
 

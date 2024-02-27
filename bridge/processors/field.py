@@ -126,3 +126,11 @@ class Field:
         #     self.ally_goal.up.y - self.ball.getPos().y, self.ball.getPos().y - self.ally_goal.down.y)
         return aux.sign(self.ally_goal.center.x - self.ball.getPos().x) == aux.sign(self.ball.getPos().x - self.ally_goal.forw.x) and \
             aux.sign(self.ally_goal.up.y - self.ball.getPos().y) == aux.sign(self.ball.getPos().y - self.ally_goal.down.y)
+
+    def is_ball_moves_to_goal(self) -> bool:
+        """
+        Определить, движется ли мяч в сторону ворот
+        """
+        return (
+            self.ball.get_vel().mag() > const.GK_INTERCEPT_SPEED
+        )  # and self.ball._vel.x / self.ally_goal.center.x > 0 нужно протестить
