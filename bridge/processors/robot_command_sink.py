@@ -89,6 +89,7 @@ class CommandSink(BaseProcessor):
             rules.append(self.b_control_team[i].kicker_charge_enable_)
             rules.append(self.b_control_team[i].beep)
             rules.append(0)
+
         for i in range(const.TEAM_ROBOTS_MAX_COUNT):
             if abs(self.y_control_team[i].speed_x) < 1.5:
                 self.y_control_team[i].speed_x = 0

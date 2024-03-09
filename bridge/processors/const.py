@@ -4,10 +4,10 @@
 
 ##################################################
 # GAME SETTING CONSTS
-GK = 0
+GK = 9
 PENALTY_KICKER = 1
 ENEMY_GK = 5
-IS_SIMULATOR_USED = True
+IS_SIMULATOR_USED = False
 CAMERAS_COUNT: int = 4
 MAX_BALLS_IN_CAMERA: int = 64
 MAX_BALLS_IN_FIELD: int = CAMERAS_COUNT * MAX_BALLS_IN_CAMERA
@@ -83,7 +83,7 @@ ROBOT_R = 0.2
 GRAVEYARD_POS_X = -10000
 
 POLARITY = -1  # 1 если ворота синих на +x; -1 если ворота синих на -x
-GOAL_DX = POLARITY * 4500
+GOAL_DX = POLARITY * 4000
 GOAL_DY = 1000
 GOAL_PEN = POLARITY * 1000
 GOAL_BOUND_OFFSET = 100

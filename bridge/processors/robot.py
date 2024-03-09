@@ -180,7 +180,7 @@ class Robot(entity.Entity):
         """
         Определить, выровнен ли робот относительно путевой точки target
         """
-        # print(round((self.getPos() - target.pos).mag(), 2),
+        # print(round((self.get_pos() - target.pos).mag(), 2),
         #       const.KICK_ALIGN_DIST*const.KICK_ALIGN_DIST_MULT, \
         #       round(abs(aux.wind_down_angle(self._angle - target.angle)), 2),
         #       const.KICK_ALIGN_ANGLE, \
