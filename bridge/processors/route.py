@@ -65,6 +65,8 @@ class Route:
                     break
             dist += (wpt.pos - last_wp_pos).mag()
             last_wp_pos = wpt.pos
+        
+        #if wpt.type == wp.WType.S_BALL_GRAB: dist = 0
         return dist
         
     def __str__(self):

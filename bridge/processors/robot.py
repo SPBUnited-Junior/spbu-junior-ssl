@@ -202,7 +202,7 @@ class Robot(entity.Entity):
 
             print("IS KICK ALIGNED: ", self.is_kick_aligned(end_point), ",\tIS BALL GRABBED: ", self.is_ball_in(field))
             
-            self.posReg.select_mode(tau.Mode.SOFT)
+            #self.posReg.select_mode(tau.Mode.SOFT)
 
             if end_point.type == wp.WType.S_BALL_GO:
                 angle0 = end_point.angle
@@ -281,4 +281,3 @@ class Robot(entity.Entity):
 
     def __str__(self) -> str:
         return str(str(self.color) + " " + str(self.rId) + " " + str(self.getPos()) + " " + str(self.speedX) + " " + str(self.speedY)) + " " + str(self.speedR)
-
