@@ -4,7 +4,7 @@
 
 ##################################################
 # GAME SETTING CONSTS
-GK = 9
+GK = 11
 PENALTY_KICKER = 1
 ENEMY_GK = 5
 IS_SIMULATOR_USED = False
@@ -73,7 +73,7 @@ R_KP = 7
 R_KD = 0
 KP = 0.1
 
-GK_INTERCEPT_SPEED = 300
+GK_INTERCEPT_SPEED = 100
 GK_PEN_KICKOUT_SPEED = 500
 ##################################################
 # GEOMETRY CONSTS
@@ -82,7 +82,7 @@ BALL_R = 0.05
 ROBOT_R = 0.2
 GRAVEYARD_POS_X = -10000
 
-POLARITY = -1  # 1 если ворота синих на +x; -1 если ворота синих на -x
+POLARITY = 1  # 1 если ворота синих на +x; -1 если ворота синих на -x
 GOAL_DX = POLARITY * 4000
 GOAL_DY = 1000
 GOAL_PEN = POLARITY * 1000
@@ -90,7 +90,7 @@ GOAL_BOUND_OFFSET = 100
 GOAL_WALLLINE_OFFSET = 1800
 GOAL_WALL_ROBOT_SEPARATION = 150
 
-GK_FORW = 800
+GK_FORW = 1500
 KICK_ALIGN_DIST = 200
 KICK_ALIGN_DIST_MULT = 1.5
 KICK_ALIGN_ANGLE = 0.1

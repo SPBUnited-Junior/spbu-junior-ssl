@@ -5,6 +5,7 @@
 # Расчет требуемых положений роботов исходя из ситуации на поле
 
 import math
+from time import time
 
 # !v DEBUG ONLY
 from enum import Enum
@@ -15,6 +16,7 @@ import bridge.processors.const as const
 import bridge.processors.field as field
 import bridge.processors.robot as rb
 import bridge.processors.waypoint as wp
+import bridge.processors.drawing as draw
 
 
 class States(Enum):
@@ -59,18 +61,21 @@ class Strategy:
         self.goalUp = 500
         self.goalDown = -500
 
+        self.image = draw.Image()
         self.ball_state: str = "CHILLING"
 
     def process(self, field: field.Field) -> list[wp.Waypoint]:
         """
         Рассчитать конечные точки для каждого робота
         """
-        
-        waypoints: list[wp.Waypoint] = [wp.Waypoint(aux.Point(const.GRAVEYARD_POS_X, 0), 0, wp.WType.S_IGNOREOBSTACLES)] * const.TEAM_ROBOTS_MAX_COUNT
+
+        waypoints: list[wp.Waypoint] = [
+            wp.Waypoint(aux.Point(const.GRAVEYARD_POS_X, 0), 0, wp.WType.S_IGNOREOBSTACLES)
+        ] * const.TEAM_ROBOTS_MAX_COUNT
 
         if self.game_status == GameStates.RUN:
             self.run(field, waypoints)
-        '''else:
+        """else:
             if self.game_status == GameStates.TIMEOUT:
                 self.timeout(field, waypoints)
             elif self.game_status == GameStates.HALT:
@@ -89,7 +94,7 @@ class Strategy:
             elif self.game_status == GameStates.FREE_KICK:
                 self.free_kick(field, waypoints)
             elif self.game_status == GameStates.STOP:
-                self.keep_distance(field, waypoints)'''
+                self.keep_distance(field, waypoints)"""
 
         # print(self.game_status, self.state)
         return waypoints
@@ -124,28 +129,30 @@ class Strategy:
     def run(self, field: field.Field, waypoints: list[wp.Waypoint]) -> None:
 
         for robo in field.allies:
-            waypoints[robo.r_id] = wp.Waypoint(aux.Point(-2000, 0), 0, wp.WType.S_IGNOREOBSTACLES)
+            waypoints[robo.r_id] = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(robo.get_pos(), field.ally_goal.center), wp.WType.S_BALL_KICK)
 
         # field.ball.get_pos() - координаты мяча
         # field.enemies[i].get_pos() - координаты робота соперника с id i
         # field.allies[i].get_pos() - координаты робота союзника с id i
-        
-        attacker = None
-        for robot in field.enemies:
-            if field.is_ball_in(robot) and math.cos(robot.get_angle()) * const.GOAL_DY > 0:
-                attacker = robot
 
-        waypoints[const.GK] = wp.Waypoint(field.ally_goal.up, 0, wp.WType.S_ENDPOINT)
-            
+        robot_with_ball = rb.find_nearest_robot(field.ball.get_pos(), field.allies)
+        robot_with_ball = None
+
+        self.goalk(field, waypoints, [const.GK], robot_with_ball)
+        self.image.draw_robot(field.allies[const.GK].get_pos(), field.allies[const.GK].get_angle())
+
         # print(path_point.x, path_point.y, self_pos.x, sep=", ", end="\n")
 
         # for i in range(len(waypoints)):
         #     waypoints[i] = wp.Waypoint(aux.Point(0, 0), 0, wp.WType.S_ENDPOINT)
-        #self.goalk(field, field.ball.get_pos(), attacker)
+        
         # if True: # Здесь будет условие смены атаки на защиту для данного робота
         #    self.chooseKick(field, 0)
         # else:
         #    pass
+
+        self.image.update_window()
+        self.image.draw_field()
 
     def chooseKick(self, field: field.Field, robotInx: int) -> None:
         central = []
@@ -223,29 +230,76 @@ class Strategy:
             self.yR = 0
         # pass
 
-    def goalk(self, field: field.Field, ball: aux.Point, attacker: Optional[rb.Robot] = None) -> aux.Point:
-        target = aux.Point(0, 0)
-
-        if const.GOAL_DX > 0:
-            target.x = const.GOAL_DX - 300
-            goalk_block = const.GOAL_DX - 400
+    def goalk(self, field: field.Field, waypoints: list[wp.Waypoint], gk_wall_idx_list: list[int], robot_with_ball: rb.Robot) -> None:
+        if robot_with_ball is not None:
+            predict = aux.get_line_intersection(
+                robot_with_ball.get_pos(),
+                robot_with_ball.get_pos() + aux.rotate(aux.RIGHT, robot_with_ball.get_angle()),
+                field.ally_goal.down,
+                field.ally_goal.up,
+                "RS",
+            )
+            if predict is not None:
+                p_ball = (field.ball.get_pos() - predict).unity()
+                gk_pos = aux.lerp(
+                    aux.point_on_line(field.ally_goal.center, field.ball.get_pos(), const.GK_FORW),
+                    p_ball * const.GK_FORW
+                    + aux.get_line_intersection(
+                        robot_with_ball.get_pos(),
+                        robot_with_ball.get_pos() + aux.rotate(aux.RIGHT, robot_with_ball.get_angle()),
+                        field.ally_goal.down,
+                        field.ally_goal.up,
+                        "RS",
+                    ),
+                    0.5,
+                )
+                #print("PREDICTION: ", robot_with_ball.getAngle())
+            else:
+                # print("NO PREDICTION1")
+                gk_pos = aux.point_on_line(field.ally_goal.center, field.ball.get_pos(), const.GK_FORW)
         else:
-            target.x = const.GOAL_DX + 300
-            goalk_block = const.GOAL_DX + 400
-        if field.is_ball_moves_to_goal():
-            if self.ball_state == "CHILLING":
-                self.ball_state = "ATTACKING"
-                self.ball_start_point = ball
-                self.attacker_start_point = attacker
-        else:
-            self.ball_state = "CHILLING"
+            # print("NO PREDICTION2")
+            gk_pos = aux.point_on_line(field.ally_goal.center, field.ball.get_pos(), min((field.ally_goal.center - field.ball.get_pos()).mag() / 2, const.GK_FORW))
 
-        if self.ball_state == "ATTACKING" and aux.dist(self.ball_start_point, ball) > 100:
-            delta = ball - self.ball_start_point
-            target.y = self.ball_start_point.y + (goalk_block - self.ball_start_point.x) / delta.x * delta.y
-        elif self.ball_state == "CHILLING" or attacker is None:
-            target.y = ball.y / (const.GOAL_DX - ball.x) * (const.GOAL_DX - goalk_block)
+        # print(field.ball.vel.mag())
+        if (
+            field.is_ball_moves_to_goal() and aux.get_line_intersection(
+                field.ally_goal.down,
+                field.ally_goal.up,
+                field.ball.get_pos(),
+                field.ball.get_pos() + field.ball.get_vel(),
+                "SR",
+            )
+            is not None
+        ):
+            gk_pos = aux.closest_point_on_line(
+                field.ball.get_pos(), field.ball.get_vel() * 1000000, field.allies[gk_wall_idx_list[0]].get_pos()
+            )
+            # print("GK INTERCEPT", time.time())
+            self.image.draw_dot(gk_pos, 10, [0, 0, 0])
         else:
-            target.y = attacker.get_pos().y + (attacker.get_pos().x - const.GOAL_DX) * math.tan(attacker.get_angle())
+            self.image.draw_dot(gk_pos, 10, [255, 255, 255])
 
-        return target
+        gk_angle = math.pi / 2
+        waypoints[gk_wall_idx_list[0]] = wp.Waypoint(gk_pos, gk_angle, wp.WType.S_ENDPOINT)
+
+        
+        self.image.draw_dot(field.ball.get_pos(), 5)
+        
+        # print(field.isBallInGoalSq(), field.ball.get_pos())
+        '''if field.is_ball_stop_near_goal():
+            waypoints[gk_wall_idx_list[0]] = wp.Waypoint(
+                field.ball.get_pos(), field.ally_goal.eye_forw.arg(), wp.WType.S_BALL_KICK
+            )
+
+        # wallline = [field.ally_goal.forw + field.ally_goal.eye_forw * const.GOAL_WALLLINE_OFFSET]
+        # wallline.append(wallline[0] + field.ally_goal.eye_up)
+
+        walline = aux.point_on_line(field.ally_goal.center, field.ball.get_pos(), const.GOAL_WALLLINE_OFFSET)
+        walldir = aux.rotate((field.ally_goal.center - field.ball.get_pos()).unity(), math.pi / 2)
+        dirsign = -aux.sign(aux.vec_mult(field.ally_goal.center, field.ball.get_pos()))
+
+        wall = []
+        for i in range(len(gk_wall_idx_list) - 1):
+            wall.append(walline - walldir * (i + 1) * dirsign * (1 + (i % 2) * -2) * const.GOAL_WALL_ROBOT_SEPARATION)
+            waypoints[gk_wall_idx_list[i + 1]] = wp.Waypoint(wall[i], walldir.arg(), wp.WType.S_ENDPOINT)'''

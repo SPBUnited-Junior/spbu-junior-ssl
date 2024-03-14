@@ -213,7 +213,7 @@ class Robot(entity.Entity):
             self.is_kick_commited = True
         else:
             self.is_kick_commited = False
-        print(is_dist, is_angle, is_offset)
+        # print(is_dist, is_angle, is_offset)
         return is_aligned
 
     def update_vel_xyw(self, vel: aux.Point, wvel: float) -> None:
