@@ -50,6 +50,11 @@ class Strategy:
         self.choosedKick = False
         self.passInd = -1
 
+        self.backDist = 1000
+        self.startGetterPoint = aux.Point(0, 0)
+        self.angGet = 0
+        self.passer = None
+
     def process(self, field: field.Field):
         """
         Рассчитать конечные точки для каждого робота
@@ -202,49 +207,53 @@ class Strategy:
             if i != robotInx:
                 alliePos = field.allies[i].getPos()
                 allieAngle = field.allies[i].getAngle()
-                if self.canPass(field, robotInx, i) and self.distance(myPos, alliePos) < minDist:
+                if self.distance(myPos, alliePos) < minDist and self.canPass(field, robotInx, i):
                     minDist = self.distance(myPos, alliePos)
                     passRobot = i
-                    #passRobots.append(i)
 
         if passRobot != -1: return passRobot 
         else: return None
 
     def canPass(self, field: field.Field, my, any):
-        fromPos = field.allies[my].getPos()
+        fromPoses = (field.allies[my].getPos(), field.ball.getPos())
         toPos = field.allies[any].getPos()
-        if toPos.x != fromPos.x: kl = (toPos.y - fromPos.y) / (toPos.x - fromPos.x)
-        else: kl = 1
-        bl = fromPos.y - kl * fromPos.x
-
-        a = -kl
-        b = 1
-        c = -bl
-        #print(a, b, c)
-
-        state = True
-        for i in range(6):
-            if (i < 3 and i != my and i != any and self.between(fromPos, toPos, field.allies[i].getPos()) and self.intersection(a, b, c, field.allies[i].getPos())) \
-                or (i >= 3 and self.between(fromPos, toPos, field.enemies[i - 3].getPos()) and self.intersection(a, b, c, field.enemies[i - 3].getPos())):
-                state = False
-                break
         
-        #if state:
+        state = True
+        for fromPos in fromPoses:
+            if toPos.x != fromPos.x: kl = (toPos.y - fromPos.y) / (toPos.x - fromPos.x)
+            else: kl = 1
+            bl = fromPos.y - kl * fromPos.x
+
+            a = -kl
+            b = 1
+            c = -bl
+
+            for i in range(6):
+                if (i < 3 and i != my and i != any and self.between(fromPos, toPos, field.allies[i].getPos()) and self.intersection(a, b, c, field.allies[i].getPos())) \
+                    or (i >= 3 and self.between(fromPos, toPos, field.enemies[i - 3].getPos()) and self.intersection(a, b, c, field.enemies[i - 3].getPos())):
+                    state = False
+                    break
+            
         return state
-        #else: return False
     
     def intersection(self, a, b, c, pos):
         return abs(a * pos.x + b * pos.y + c) / math.sqrt(a**2 + b**2) < self.robotRadius * 0.8
 
+    def getPosBack(self, pos, alpha):
+        return aux.Point(pos.x - self.backDist * math.cos(alpha), pos.y - self.backDist * math.sin(alpha))
+
     def run(self, field: field.Field, waypoints):
         getPass = False
-        passer = self.passBall(field, 0)
-        if passer != None:
-            getPass = True
+        #self.passer = None
+        if not self.choosedKick:
+            self.passer = self.passBall(field, 0)
+            if self.passer != None:
+                getPass = True
+        else: getPass = True
             #passer = 
 
         if not self.choosedKick and self.distance(field.ball.getPos(), field.allies[0].getPos()) < 2 * self.robotRadius:
-            self.passInd = passer
+            self.passInd = self.passer
             #if self.passInd != None: getPass = True
             self.choosedKick = True
         elif self.choosedKick:
@@ -264,9 +273,20 @@ class Strategy:
             ang = math.atan2(field.ball.getPos().y - field.allies[0].getPos().y, field.ball.getPos().x - field.allies[0].getPos().x)
             waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)
         
-        if getPass:
-            getterPos = field.allies[passer].getPos()
-            angGet = math.pi + math.atan2(getterPos.y - field.ball.getPos().y, getterPos.x - field.ball.getPos().x)
-            #print("ANG_GET:", angGet)
+        if getPass and self.passer != None:
+            ballVel = math.sqrt(field.ball.getVel().x**2 + field.ball.getVel().y**2)
+            if ballVel < 20:
+                getterPos = field.allies[self.passer].getPos()
+                self.angGet = math.pi + math.atan2(getterPos.y - field.ball.getPos().y, getterPos.x - field.ball.getPos().x)
+                self.startGetterPoint = getterPos
+            else:
+                getterPos = self.getPosBack(self.startGetterPoint, self.angGet)
+                #self.passer = None 
 
-            waypoints[passer] = wp.Waypoint(getterPos, angGet, wp.WType.S_ENDPOINT)
+            #print("ANG_GET:", angGet)
+            waypoints[self.passer] = wp.Waypoint(getterPos, self.angGet, wp.WType.S_ENDPOINT)
+
+            if self.distance(field.allies[self.passer].getPos(), field.ball.getPos()) < 50:
+                self.passer = None
+                self.choosedKick = False
+                getPass = False
