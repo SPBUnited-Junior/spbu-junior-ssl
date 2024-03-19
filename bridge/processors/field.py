@@ -153,17 +153,20 @@ class Field:
         #       self.ball.get_pos().x - self.ally_goal.forw.x,
         #       self.ally_goal.up.y - self.ball.get_pos().y,
         #       self.ball.get_pos().y - self.ally_goal.down.y)
-        return aux.sign(self.ally_goal.center.x - self.ball.get_pos().x) == aux.sign(
-            self.ball.get_pos().x - self.ally_goal.forw.x
-        ) and aux.sign(self.ally_goal.up.y - self.ball.get_pos().y) == aux.sign(
-            self.ball.get_pos().y - self.ally_goal.down.y
-        ) and not self.is_ball_moves_to_goal()
+        return (
+            aux.sign(self.ally_goal.center.x - self.ball.get_pos().x)
+            == aux.sign(self.ball.get_pos().x - self.ally_goal.forw.x)
+            and aux.sign(self.ally_goal.up.y - self.ball.get_pos().y)
+            == aux.sign(self.ball.get_pos().y - self.ally_goal.down.y)
+            and not self.is_ball_moves_to_goal()
+        )
 
     def is_ball_moves_to_goal(self) -> bool:
         """
         Определить, движется ли мяч в сторону ворот
         """
-        print(self.ball.get_vel())
+        print("ball_vel", self.ball.get_vel())
         return (
-            aux.scal_mult(self.ball.get_vel(), self.ally_goal.center - self.ball.get_pos()) > const.GK_INTERCEPT_SPEED
+            aux.scal_mult(self.ball.get_vel(), self.ally_goal.center - self.ball.get_pos().unity())
+            > const.GK_INTERCEPT_SPEED
         )

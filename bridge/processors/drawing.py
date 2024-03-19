@@ -71,14 +71,20 @@ class Image:
             int(r.x * self.scale + self.middle_x + robot_length * math.cos(angle)),
             int(-r.y * self.scale + self.middle_y - robot_length * math.sin(angle)),
         )
-        pygame.draw.circle(self.screen, robot_color, [r.x * self.scale + self.middle_x, -r.y * self.scale + self.middle_y], robot_radius)
-        pygame.draw.line(self.screen, robot_color, [r.x * self.scale + self.middle_x, -r.y * self.scale + self.middle_y], end_point, 2)
+        pygame.draw.circle(
+            self.screen, robot_color, [r.x * self.scale + self.middle_x, -r.y * self.scale + self.middle_y], robot_radius
+        )
+        pygame.draw.line(
+            self.screen, robot_color, [r.x * self.scale + self.middle_x, -r.y * self.scale + self.middle_y], end_point, 2
+        )
 
     def draw_dot(self, pos: aux.Point, size: float = 3, color: tuple[int, int, int] = (255, 0, 0)) -> None:
         """
         draw single point
         """
-        pygame.draw.circle(self.screen, color, (pos.x * self.scale + self.middle_x, -pos.y * self.scale + self.middle_y), size)
+        pygame.draw.circle(
+            self.screen, color, (pos.x * self.scale + self.middle_x, -pos.y * self.scale + self.middle_y), size
+        )
 
     def update_window(self) -> None:
 

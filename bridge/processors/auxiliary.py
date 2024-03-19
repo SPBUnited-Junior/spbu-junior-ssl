@@ -285,10 +285,12 @@ def wind_down_angle(angle: float) -> float:
     return angle
 
 
-def closest_point_on_line(point1: Point, point2: Point, point: Point) -> Point:
+def closest_point_on_line(point1: Point, point2: Point, point: Point) -> typing.Optional[Point]:
     """
     Получить ближайшую к точке point току на линии point1-point2
     """
+    if point1 is None or point2 is None:
+        return None
     line_vector = (point2.x - point1.x, point2.y - point1.y)
     line_length = dist(point1, point2)
 

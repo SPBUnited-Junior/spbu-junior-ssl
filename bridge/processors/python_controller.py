@@ -73,12 +73,13 @@ class SSLController(BaseProcessor):
         """
         status = False
 
-        balls = np.zeros(const.BALL_PACKET_SIZE * const.MAX_BALLS_IN_FIELD)
+        balls = [[], []]
         field_info = np.zeros(const.GEOMETRY_PACKET_SIZE)
 
         queue = self.vision_reader.read_new()
 
         for ssl_package in queue:
+            # print("new paket")
             try:
                 ssl_package_content = ssl_package.content
             except AttributeError:
@@ -99,12 +100,10 @@ class SSLController(BaseProcessor):
                     const.GOAL_DY = geometry.field.goal_width
 
             detection = ssl_package_content.detection
-            camera_id = detection.camera_id
+            detection.camera_id
             for ball_ind, ball in enumerate(detection.balls):
-                balls[ball_ind + (camera_id - 1) * const.MAX_BALLS_IN_CAMERA] = camera_id
-                balls[ball_ind + const.MAX_BALLS_IN_FIELD + (camera_id - 1) * const.MAX_BALLS_IN_CAMERA] = ball.x
-                balls[ball_ind + 2 * const.MAX_BALLS_IN_FIELD + (camera_id - 1) * const.MAX_BALLS_IN_CAMERA] = ball.y
-                self.field.update_ball(aux.Point(ball.x, ball.y), time.time())
+                balls[0].append(ball.x)
+                balls[1].append(ball.y)
 
             for i in range(const.TEAM_ROBOTS_MAX_COUNT):
                 if time.time() - self.field.b_team[i].last_update() > 1:
@@ -132,6 +131,11 @@ class SSLController(BaseProcessor):
                 self.field.update_yel_robot(
                     robot_det.robot_id, aux.Point(robot_det.x, robot_det.y), robot_det.orientation, time.time()
                 )
+
+        if len(balls[0]) != 0:
+            midBallX = sum(balls[0]) / len(balls[0])
+            midBallY = sum(balls[1]) / len(balls[1])
+            self.field.update_ball(aux.Point(midBallX, midBallY), time.time())
         return status
 
     def control_loop(self) -> None:
@@ -181,8 +185,8 @@ class SSLController(BaseProcessor):
         self.delta_t = time.time() - self.cur_time
         self.cur_time = time.time()
 
-        # print(self.dt)
-        # print(self.ally_color)
+        # print("delta_t", self.delta_t)
+
         self.read_vision()
         self.control_loop()
 

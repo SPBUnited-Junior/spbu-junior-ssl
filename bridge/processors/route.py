@@ -161,7 +161,7 @@ class Route:
             or end_point.type == wp.WType.S_BALL_GO
         ) and dist < 1500:
 
-            print("IS KICK ALIGNED: ", rbt.is_kick_aligned(end_point), ",\tIS BALL GRABBED: ", fld.is_ball_in(rbt))
+            # print("IS KICK ALIGNED: ", rbt.is_kick_aligned(end_point), ",\tIS BALL GRABBED: ", fld.is_ball_in(rbt))
 
             rbt.pos_reg.select_mode(tau.Mode.SOFT)
 
@@ -170,7 +170,7 @@ class Route:
 
             rbt.dribbler_enable_ = True
             rbt.dribbler_speed_ = 15
-            rbt.kicker_voltage_ = 15
+            rbt.kicker_voltage_ = 10
         else:
             rbt.dribbler_enable_ = False
 
@@ -191,7 +191,7 @@ class Route:
             else:
                 rbt.auto_kick_ = 0
 
-            transl_vel = vel0 * 300
+            transl_vel = vel0 * 200
 
         else:
             rbt.auto_kick_ = 0
@@ -210,4 +210,8 @@ class Route:
         #               angle60: ", '%.2f'%angle60, ", end angle: ", '%.2f'%end_point.angle, \
         #               ", angle0: ", '%.2f'%angle0, ", aerr: ", '%.2f'%aerr, ",
         #               rbt angle: ", '%.2f'%rbt.getAngle())
+        if end_point.type == wp.WType.S_STOP:
+            transl_vel = aux.Point(0, 0)
+            ang_vel = 0.0
+
         rbt.update_vel_xyw(transl_vel, ang_vel)
