@@ -53,7 +53,11 @@ class Strategy:
         self.backDist = 1000
         self.startGetterPoint = aux.Point(0, 0)
         self.angGet = 0
-        self.passer = None
+        self.getter = None
+        self.ang = 0
+        self.distPrepare = 80
+        self.flagGet = False
+        self.pointToPass = aux.Point(0, 0)
 
     def process(self, field: field.Field):
         """
@@ -242,27 +246,39 @@ class Strategy:
     def getPosBack(self, pos, alpha):
         return aux.Point(pos.x - self.backDist * math.cos(alpha), pos.y - self.backDist * math.sin(alpha))
 
+    def getPointGetPass(self, posPasser, ballPos, posGetter):
+        #point2 = aux.Point(posPasser.x - 300, math.tan(angPasser) * (posPasser.x - 300))
+        pointTo = aux.closest_point_on_line(posPasser, ballPos, posGetter)
+        return pointTo
+    
     def run(self, field: field.Field, waypoints):
         getPass = False
         #self.passer = None
         if not self.choosedKick:
-            self.passer = self.passBall(field, 0)
-            if self.passer != None:
+            self.getter = self.passBall(field, 0)
+            if self.getter != None:
                 getPass = True
         else: getPass = True
-            #passer = 
 
-        if not self.choosedKick and self.distance(field.ball.getPos(), field.allies[0].getPos()) < 2 * self.robotRadius:
-            self.passInd = self.passer
+        if not self.choosedKick and self.distance(field.ball.getPos(), field.allies[0].getPos()) < 2.2 * self.robotRadius:
+            self.passInd = self.getter
             #if self.passInd != None: getPass = True
             self.choosedKick = True
+            if self.passInd != None: self.pointToPass = field.allies[self.passInd].getPos()
         elif self.choosedKick:
             #self.passInd = self.passBall(field, 0)
             print(self.passInd)
 
             if self.passInd != None:
-                ang = math.atan2(field.allies[self.passInd].getPos().y - field.allies[0].getPos().y, field.allies[self.passInd].getPos().x - field.allies[0].getPos().x)
-                waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
+                self.ang = math.atan2(self.pointToPass.y - field.allies[0].getPos().y, self.pointToPass.x - field.allies[0].getPos().x)
+                waypoints[0] = wp.Waypoint(field.ball.getPos(), math.pi/10 + self.ang, wp.WType.S_BALL_KICK)
+                
+                dist2Trajectory = aux.dist2line(field.ball.getPos(), 
+                                                self.pointToPass, 
+                                                field.allies[0].getPos())
+                if dist2Trajectory < self.distPrepare:
+                    self.flagGet = True
+                #else: self.flagGet = True
             else:
                 waypoints[0] = wp.Waypoint(field.ball.getPos(), 0, wp.WType.S_ENDPOINT)
             
@@ -270,23 +286,33 @@ class Strategy:
                 self.choosedKick = False
             #if field.is_ball_moves_to_goal(): self.choosedKick = False
         else:
-            ang = math.atan2(field.ball.getPos().y - field.allies[0].getPos().y, field.ball.getPos().x - field.allies[0].getPos().x)
-            waypoints[0] = wp.Waypoint(field.ball.getPos(), ang, wp.WType.S_BALL_KICK)
-        
-        if getPass and self.passer != None:
-            ballVel = math.sqrt(field.ball.getVel().x**2 + field.ball.getVel().y**2)
-            if ballVel < 20:
-                getterPos = field.allies[self.passer].getPos()
-                self.angGet = math.pi + math.atan2(getterPos.y - field.ball.getPos().y, getterPos.x - field.ball.getPos().x)
-                self.startGetterPoint = getterPos
+            self.ang = math.atan2(field.ball.getPos().y - field.allies[0].getPos().y, field.ball.getPos().x - field.allies[0].getPos().x)
+            waypoints[0] = wp.Waypoint(field.ball.getPos(), self.ang, wp.WType.S_BALL_KICK)
+        #waypoints[0] = wp.Waypoint(field.ball.getPos(), self.ang, wp.WType.S_BALL_KICK)
+
+        if self.flagGet and getPass:
+            #ballVel = math.sqrt(field.ball.getVel().x**2 + field.ball.getVel().y**2)
+            #if ballVel > 20:
+            #toAngle = math.atan2(field.allies[0].getPos().y - field.ball.getPos().y, field.allies[0].getPos().x - field.ball.getPos().x)
+            dist2Trajectory = aux.dist2line(field.ball.getPos(), 
+                                                field.allies[0].getPos(), 
+                                                field.allies[self.passInd].getPos())
+            if dist2Trajectory > 30: 
+                getterPos = aux.closest_point_to_line(field.allies[0].getPos(), field.ball.getPos(), field.allies[self.passInd].getPos())
             else:
-                getterPos = self.getPosBack(self.startGetterPoint, self.angGet)
-                #self.passer = None 
+                getterPos = field.allies[self.passInd].getPos()
+
+            self.angGet = math.pi + math.atan2(getterPos.y - field.ball.getPos().y, getterPos.x - field.ball.getPos().x)
+            self.startGetterPoint = getterPos
+            waypoints[self.passInd] = wp.Waypoint(getterPos, self.angGet, wp.WType.S_ENDPOINT)
+
+            #else:
+            #    getterPos = self.getPosBack(self.startGetterPoint, self.angGet)
+            #    self.getter = None 
 
             #print("ANG_GET:", angGet)
-            waypoints[self.passer] = wp.Waypoint(getterPos, self.angGet, wp.WType.S_ENDPOINT)
+            #waypoints[self.getter] = wp.Waypoint(getterPos, self.angGet, wp.WType.S_ENDPOINT)
 
-            if self.distance(field.allies[self.passer].getPos(), field.ball.getPos()) < 50:
-                self.passer = None
-                self.choosedKick = False
-                getPass = False
+            if self.distance(field.allies[self.passInd].getPos(), field.ball.getPos()) < 10:
+                self.flagGet = False
+        #else: self.flagGet = False

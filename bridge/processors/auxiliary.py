@@ -247,8 +247,8 @@ def wind_down_angle(angle: float):
 
 def closest_point_on_line(point1, point2, point):
     """
-    Получить ближайшую к точке point току на линии point1-point2
-    """
+    Получить ближайшую к точке point току на отрезке point1-point2
+    """ 
     line_vector = (point2.x - point1.x, point2.y - point1.y)
     line_length = dist(point1, point2)
     
@@ -264,6 +264,33 @@ def closest_point_on_line(point1, point2, point):
         return point1
     elif dot_product >= line_length:
         return point2
+    
+    closest_point = Point(
+        point1.x + line_direction[0] * dot_product,
+        point1.y + line_direction[1] * dot_product
+    )
+    
+    return closest_point
+
+def closest_point_to_line(point1, point2, point):
+    """
+    Получить ближайшую к точке point току на прямой point1-point2
+    """ 
+    line_vector = (point2.x - point1.x, point2.y - point1.y)
+    line_length = dist(point1, point2)
+    
+    if line_length == 0:
+        return point1
+    
+    line_direction = (line_vector[0] / line_length, line_vector[1] / line_length)
+    
+    point_vector = (point.x - point1.x, point.y - point1.y)
+    dot_product = point_vector[0] * line_direction[0] + point_vector[1] * line_direction[1]
+    
+    '''if dot_product <= 0:
+        return point1
+    elif dot_product >= line_length:
+        return point2'''
     
     closest_point = Point(
         point1.x + line_direction[0] * dot_product,
