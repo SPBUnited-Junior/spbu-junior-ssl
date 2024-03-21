@@ -76,7 +76,7 @@ GK_PEN_KICKOUT_SPEED = 500
 
 BALL_R = 0.05
 ROBOT_R = 0.2
-GRAVEYARD_POS_X = -10000
+GRAVEYARD_POS_X = -1000000
 
 POLARITY = 1  # 1 если ворота синих на +x; -1 если ворота синих на -x
 GOAL_DX = POLARITY * 4500
