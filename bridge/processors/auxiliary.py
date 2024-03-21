@@ -121,7 +121,7 @@ class Point:
 
 RIGHT = Point(1, 0)
 UP = Point(0, 1)
-GRAVEYARD_POS = Point(const.GRAVEYARD_POS_X, 0)
+GRAVEYARD_POS = Point(0, const.GRAVEYARD_POS_X)
 
 
 class BobLine:

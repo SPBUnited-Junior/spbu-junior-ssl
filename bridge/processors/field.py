@@ -32,6 +32,9 @@ class Goal:
         self.forwup = self.forw + self.vup
         self.forwdown = self.forw + self.vdown
 
+        self.goal_up = self.center + aux.Point(0, goal_dy / 2)
+        self.goal_down = self.center - aux.Point(0, goal_dy / 2)
+
         # Оболочка штрафной зоны
         self.hull = [
             self.up + self.eye_up * const.GOAL_BOUND_OFFSET,
@@ -84,6 +87,9 @@ class Field:
         self.enemy_goal = Goal(
             -const.GOAL_DX * self.polarity, -const.GOAL_DY * self.polarity, -const.GOAL_PEN * self.polarity
         )
+
+        # NOTE: DEBUG!!!!!!!!
+        self.enemy_goal = self.ally_goal
 
         if self.ally_color == "b":
             self.allies = [*self.b_team]
@@ -165,7 +171,6 @@ class Field:
         """
         Определить, движется ли мяч в сторону ворот
         """
-        print("ball_vel", self.ball.get_vel())
         return (
             aux.scal_mult(self.ball.get_vel(), self.ally_goal.center - self.ball.get_pos().unity())
             > const.GK_INTERCEPT_SPEED

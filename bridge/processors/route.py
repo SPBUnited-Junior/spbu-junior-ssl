@@ -162,7 +162,6 @@ class Route:
         ) and dist < 1500:
 
             # print("IS KICK ALIGNED: ", rbt.is_kick_aligned(end_point), ",\tIS BALL GRABBED: ", fld.is_ball_in(rbt))
-
             rbt.pos_reg.select_mode(tau.Mode.SOFT)
 
             if end_point.type == wp.WType.S_BALL_GO:
