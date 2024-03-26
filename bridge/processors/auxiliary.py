@@ -208,8 +208,7 @@ def rotate(p: Point, angle: float):
     """
     Повернуть вектор p на угол angle
     """
-    return Point(p.x * math.cos(angle) - p.y * math.sin(angle),
-                 p.y * math.cos(angle) + p.x * math.sin(angle))
+    return Point(p.x * math.cos(angle) - p.y * math.sin(angle), p.y * math.cos(angle) + p.x * math.sin(angle))
 
 def find_nearest_point(p, points, exclude = []):
     pc = None

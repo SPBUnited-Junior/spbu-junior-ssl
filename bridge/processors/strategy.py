@@ -49,6 +49,8 @@ class Strategy:
         self.angleMyRobot = 0#aux.Point(0, 0)
         self.choosedKick = False
         self.passInd = -1
+        self.xR = -4500
+        
 
         self.backDist = 1000
         self.startGetterPoint = aux.Point(0, 0)
@@ -58,6 +60,7 @@ class Strategy:
         self.distPrepare = 80
         self.flagGet = False
         self.pointToPass = aux.Point(0, 0)
+        self.pointForTrajectory = aux.Point(0, 0)
 
     def process(self, field: field.Field):
         """
@@ -111,25 +114,24 @@ class Strategy:
         ballPos = field.ball.getPos() 
 
         poses = []
-        poses.append(aux.Point(4500, self.goalUp))
+        poses.append(aux.Point(self.xR, self.goalUp))
         for i in range(self.n):
             poses.append(field.enemies[i].getPos())
-        poses.append(aux.Point(4500, self.goalDown))
+        poses.append(aux.Point(self.xR, self.goalDown))
         
         central = []
-        self.xR = 4500
         for i in range(len(poses)):
             #print("COORD:", poses[i].x, poses[i].y)
             dist = self.distance(ballPos, poses[i])
             #print()
-            if poses[i].x != ballPos.x: D = abs(dist * (4500 - ballPos.x) / (poses[i].x - ballPos.x))
+            if poses[i].x != ballPos.x: D = abs(dist * (self.xR - ballPos.x) / (poses[i].x - ballPos.x))
             else: D = dist
             
             if (15 + self.robotRadius) / dist > 1: alphaNew = math.asin(1)
             else: alphaNew = math.asin((15 + self.robotRadius) / dist)
             
             gamma = math.acos(abs(poses[i].x - ballPos.x) / dist) - alphaNew
-            downDist = math.sqrt(D**2 - (4500 - ballPos.x)**2) - (4500 - ballPos.x) * math.tan(gamma) #HASHUV
+            downDist = math.sqrt(D**2 - (self.xR - ballPos.x)**2) - abs(self.xR - ballPos.x) * math.tan(gamma) #HASHUV
             
             if abs(D * math.sin(alphaNew) / downDist) <= 1:
                 bettaNew = math.asin(D * math.sin(alphaNew) / downDist) 
@@ -137,7 +139,7 @@ class Strategy:
             else: bettaNew = math.asin(-1)
             
             #upDist = D * math.sin(alphaNew) / math.sin(math.pi - 2 * alphaNew - bettaNew) #HASHUV
-            upDist = (4500 - ballPos.x) * math.tan(gamma + 2 * alphaNew) - (4500 - ballPos.x) * math.tan(gamma) - downDist
+            upDist = abs(self.xR - ballPos.x) * math.tan(gamma + 2 * alphaNew) - abs(self.xR - ballPos.x) * math.tan(gamma) - downDist
 
             if ballPos.y > poses[i].y: 
                 #(downDist, upDist) = (upDist, downDist)
@@ -145,6 +147,8 @@ class Strategy:
             else:
                 (downDist, upDist) = (upDist, downDist) 
                 ycc = ballPos.y + D * math.sin(alphaNew + gamma)
+        
+            if upDist < downDist: (downDist, upDist) = (upDist, downDist)
 
             #if ycc + upDist > self.goalDown and ycc - downDist  < self.goalUp:
             if ycc > self.goalDown - self.robotRadius and ycc < self.goalUp + self.robotRadius:
@@ -154,20 +158,21 @@ class Strategy:
         #for i in range(len(central)):
         #   print(central[i][0], central[i][1], central[i][2])
 
-        maxiAngle = -2 * math.pi
+        maxiAngle = -4 * math.pi
         rememberI = -2
         for i in range(len(central) - 1):
             lookUp = central[i + 1][2]
             lookDown = central[i][1]
 
             #print(lookUp, lookDown)
-            if lookUp < lookDown: continue
+            if lookUp < lookDown: 
+                continue
 
             if lookDown < lookUp:
-                bokDown = math.sqrt((ballPos.x - 4500)**2 + (ballPos.y - lookDown)**2)
-                bokUp = math.sqrt((ballPos.x - 4500)**2 + (ballPos.y - lookUp)**2)
-                v1 = aux.Point(4500 - ballPos.x, lookDown - ballPos.y)
-                v2 = aux.Point(4500 - ballPos.x, lookUp - ballPos.y)
+                bokDown = math.sqrt((ballPos.x - self.xR)**2 + (ballPos.y - lookDown)**2)
+                bokUp = math.sqrt((ballPos.x - self.xR)**2 + (ballPos.y - lookUp)**2)
+                v1 = aux.Point(self.xR - ballPos.x, lookDown - ballPos.y)
+                v2 = aux.Point(self.xR - ballPos.x, lookUp - ballPos.y)
                 
                 if (v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp) > 1: 
                     angleBetweenVectors = math.acos(1)
@@ -179,20 +184,23 @@ class Strategy:
                 if angleBetweenVectors > maxiAngle:
                     maxiAngle = angleBetweenVectors
                     rememberI = i
-            
+        
+        canKickToGoal = False
         if rememberI != -2:
             lookUp = central[rememberI + 1][2]
             lookDown = central[rememberI][1]
 
-            bokDown = math.sqrt((ballPos.x - 4500)**2 + (ballPos.y - lookDown)**2)
-            bokUp = math.sqrt((ballPos.x - 4500)**2 + (ballPos.y - lookUp)**2)
+            bokDown = math.sqrt((ballPos.x - self.xR)**2 + (ballPos.y - lookDown)**2)
+            bokUp = math.sqrt((ballPos.x - self.xR)**2 + (ballPos.y - lookUp)**2)
             osn = lookUp - lookDown
             distUp = osn * bokUp / (bokUp + bokDown)
             
             self.yR = lookUp - distUp
+            canKickToGoal = True
         else: self.yR = 0
         
-        return math.atan2(self.yR - myPos.y, self.xR - myPos.x)
+        if canKickToGoal: return math.atan2(self.yR - myPos.y, self.xR - myPos.x)
+        else: return None
     
     def between(self, posFrom, posTo, posBet):
         xMax = max(posFrom.x, posTo.x)
@@ -252,7 +260,16 @@ class Strategy:
         return pointTo
     
     def run(self, field: field.Field, waypoints):
-        getPass = False
+        if (field.ball.getPos().x == 0 and field.ball.getPos().y == 0) \
+            or self.trueBallCoordinate(field.ball.getPos()): 
+            self.angleMyRobot = self.kickToGoal(field, 0) 
+
+        if self.angleMyRobot == None: 
+            if self.xR > 0: self.angleMyRobot = 0
+            else: self.angleMyRobot = math.pi
+        waypoints[0] = wp.Waypoint(field.ball.getPos(), self.angleMyRobot, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
+
+    '''    getPass = False
         #self.passer = None
         if not self.choosedKick:
             self.getter = self.passBall(field, 0)
@@ -260,59 +277,45 @@ class Strategy:
                 getPass = True
         else: getPass = True
 
-        if not self.choosedKick and self.distance(field.ball.getPos(), field.allies[0].getPos()) < 2.2 * self.robotRadius:
+        if not self.choosedKick and self.distance(field.ball.getPos(), field.allies[0].getPos()) < 2.2 * self.robotRadius and self.getter != None:
             self.passInd = self.getter
-            #if self.passInd != None: getPass = True
+            self.pointToPass = field.allies[self.passInd].getPos()
             self.choosedKick = True
-            if self.passInd != None: self.pointToPass = field.allies[self.passInd].getPos()
         elif self.choosedKick:
             #self.passInd = self.passBall(field, 0)
             print(self.passInd)
-
-            if self.passInd != None:
-                self.ang = math.atan2(self.pointToPass.y - field.allies[0].getPos().y, self.pointToPass.x - field.allies[0].getPos().x)
-                waypoints[0] = wp.Waypoint(field.ball.getPos(), math.pi/10 + self.ang, wp.WType.S_BALL_KICK)
-                
-                dist2Trajectory = aux.dist2line(field.ball.getPos(), 
-                                                self.pointToPass, 
-                                                field.allies[0].getPos())
-                if dist2Trajectory < self.distPrepare:
-                    self.flagGet = True
-                #else: self.flagGet = True
-            else:
-                waypoints[0] = wp.Waypoint(field.ball.getPos(), 0, wp.WType.S_ENDPOINT)
+    
+            self.ang = math.atan2(self.pointToPass.y - field.allies[0].getPos().y, self.pointToPass.x - field.allies[0].getPos().x)
+            waypoints[0] = wp.Waypoint(field.ball.getPos(), math.pi/15 + self.ang, wp.WType.S_BALL_KICK)
             
-            if self.distance(field.ball.getPos(), field.allies[0].getPos()) > 2.2 * self.robotRadius:
+            dist2Trajectory = aux.dist2line(field.ball.getPos(), 
+                                            self.pointToPass, 
+                                            field.allies[0].getPos())
+            if dist2Trajectory < self.distPrepare:
+                self.flagGet = True
+            
+            #self.pointForTrajectory = field.allies[0].getPos()
+            
+            if self.distance(field.ball.getPos(), field.allies[0].getPos()) > 2.8 * self.robotRadius:
                 self.choosedKick = False
-            #if field.is_ball_moves_to_goal(): self.choosedKick = False
         else:
             self.ang = math.atan2(field.ball.getPos().y - field.allies[0].getPos().y, field.ball.getPos().x - field.allies[0].getPos().x)
             waypoints[0] = wp.Waypoint(field.ball.getPos(), self.ang, wp.WType.S_BALL_KICK)
-        #waypoints[0] = wp.Waypoint(field.ball.getPos(), self.ang, wp.WType.S_BALL_KICK)
 
         if self.flagGet and getPass:
-            #ballVel = math.sqrt(field.ball.getVel().x**2 + field.ball.getVel().y**2)
-            #if ballVel > 20:
-            #toAngle = math.atan2(field.allies[0].getPos().y - field.ball.getPos().y, field.allies[0].getPos().x - field.ball.getPos().x)
             dist2Trajectory = aux.dist2line(field.ball.getPos(), 
-                                                field.allies[0].getPos(), 
-                                                field.allies[self.passInd].getPos())
-            if dist2Trajectory > 30: 
-                getterPos = aux.closest_point_to_line(field.allies[0].getPos(), field.ball.getPos(), field.allies[self.passInd].getPos())
-            else:
-                getterPos = field.allies[self.passInd].getPos()
+                                            field.allies[0].getPos(),#self.pointForTrajectory, 
+                                            field.allies[self.passInd].getPos())
+            #if dist2Trajectory > 30: 
+            getterPos = aux.closest_point_to_line(field.allies[0].getPos(), field.ball.getPos(), field.allies[self.passInd].getPos())
+            #else:
+            #    getterPos = field.allies[self.passInd].getPos()
 
             self.angGet = math.pi + math.atan2(getterPos.y - field.ball.getPos().y, getterPos.x - field.ball.getPos().x)
-            self.startGetterPoint = getterPos
-            waypoints[self.passInd] = wp.Waypoint(getterPos, self.angGet, wp.WType.S_ENDPOINT)
+            waypoints[self.passInd] = wp.Waypoint(getterPos, self.angGet, wp.WType.R_BALL_ALIGN)
 
-            #else:
-            #    getterPos = self.getPosBack(self.startGetterPoint, self.angGet)
-            #    self.getter = None 
-
-            #print("ANG_GET:", angGet)
-            #waypoints[self.getter] = wp.Waypoint(getterPos, self.angGet, wp.WType.S_ENDPOINT)
-
-            if self.distance(field.allies[self.passInd].getPos(), field.ball.getPos()) < 10:
+            if dist2Trajectory < 0.1 * self.robotRadius:
                 self.flagGet = False
-        #else: self.flagGet = False
+                getPass = False
+
+        #else: self.flagGet = False'''
