@@ -16,6 +16,7 @@ import bridge.processors.drawing as draw
 import bridge.processors.field as field
 import bridge.processors.robot as rb
 import bridge.processors.waypoint as wp
+import numpy as np
 
 
 class States(Enum):
@@ -114,7 +115,13 @@ class Strategy:
         # waypoints[9]  = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[9].get_pos(), field.allies[10].get_pos()), wp.WType.S_BALL_KICK)
         #self.goalk(field, waypoints, [const.GK], robot_with_ball)
         #waypoints[0] = wp.Waypoint(field.ball.get_pos(), self.choose_kick_point(field, 0), wp.WType.S_BALL_KICK)
-        self.choose_kick_point(field, 0)
+
+        for robo in field.allies:
+            waypoints[robo.r_id] = wp.Waypoint(
+                field.ball.get_pos(), aux.angle_to_point(robo.get_pos(), field.ally_goal.center), wp.WType.S_STOP
+            )
+        waypoints[0] = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[0].get_pos(), self.choose_kick_point(field, 0)), wp.WType.S_BALL_KICK)
+
         # self.image.draw_robot(field.allies[const.GK].get_pos(), field.allies[const.GK].get_angle())
 
         # self.image.update_window()
@@ -125,30 +132,21 @@ class Strategy:
         my_pos = field.allies[robot_inx].get_pos()
         ball_pos = field.ball.get_pos()
 
-        #positions = [field.ally_goal.goal_up]
         positions = []
         for robot in field.allies:
             if robot.r_id != field.allies[robot_inx].r_id:
                 if aux.dist(robot.get_pos(), field.enemy_goal.center) < aux.dist(field.enemy_goal.center, my_pos):
                     positions.append(robot.get_pos())
-        #positions.append(field.ally_goal.goal_down)
 
         positions = sorted(positions, key=lambda x: x.y)
 
-        for s in positions:
-            print(s.x, end=" ")
-        print()
-        segments = []
-
-        TMP_CONST = -4500
-
-        xR = TMP_CONST
-
+        segments = [field.enemy_goal.goal_up]
         for p in positions:
-            tangents = aux.get_tangent_points(p, my_pos, const.ROBOT_R)
+            tangents = aux.get_tangent_points(p, my_pos, const.ROBOT_R * 100)
             if tangents is None or len(tangents) != 2:
                 print(p, my_pos, tangents)
                 continue
+            
             int1 = aux.get_line_intersection(
                 my_pos,
                 tangents[0],
@@ -166,15 +164,40 @@ class Strategy:
             if int1 is None and int2 is None:
                 continue
             if int1 is None:
-                segments.append([-const.GOAL_DY / 2, int2])
+                segments.append(field.enemy_goal.goal_up)
+                segments.append(int2)
             elif int2 is None:
-                segments.append([int1, const.GOAL_DY / 2])
+                segments.append(int1)
+                segments.append(field.enemy_goal.goal_down)
             else:
-                segments.append([int1.y, int2.y])
+                segments.append(int1)
+                segments.append(int2)
 
-        for s in segments:
-            print(s)
-        return 0
+        segments.append(field.enemy_goal.goal_down)
+        max_ = 0
+        maxId = -1
+        for i in range(0, len(segments), 2):
+            c = segments[i]
+            a = segments[i + 1]
+            b = field.ball.get_pos()
+            if c.y > a.y: continue #Shadow intersection
+            ang = aux.get_angle_between_points(a, b, c)
+            print(ang, c.y, a.y)
+            if (ang > max_):
+                max_ = ang
+                maxId = i
+
+        if maxId == -1:
+            return None
+
+        A = segments[maxId + 1]
+        B = field.ball.get_pos()
+        C = segments[maxId]
+        tmp1 = (C - B).mag()
+        tmp2 = (A - B).mag()
+        CA = (A - C)
+        print(C + CA * 0.5 * (tmp1 / tmp2))
+        return C + CA * 0.5 * (tmp1 / tmp2)
 
     def goalk(
             self, field: field.Field, waypoints: list[wp.Waypoint], gk_wall_idx_list: list[int],

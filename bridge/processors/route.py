@@ -154,7 +154,7 @@ class Route:
         angle0 = aux.lerp(lerp_angles[0], lerp_angles[1], aux.minmax((dist - 100) / 1000, 0, 1))
 
         rbt.pos_reg.select_mode(tau.Mode.NORMAL)
-
+        
         if (
             end_point.type == wp.WType.S_BALL_KICK
             or end_point.type == wp.WType.S_BALL_GRAB

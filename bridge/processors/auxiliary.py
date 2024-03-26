@@ -418,3 +418,7 @@ def get_tangent_points(point0: Point, point1: Point, r: float):
         midx, midy = (point0.x + point1.x) / 2, (point0.y + point1.y) / 2
         p2, p3 = circles_inter(point0, Point(midx, midy), r, d / 2)
         return p2, p3
+
+def get_angle_between_points(a: Point, b: Point, c: Point) -> float:
+    ang = math.degrees(math.atan2(c.y - b.y, c.x - b.x) - math.atan2(a.y - b.y, a.x - b.x))
+    return ang + 360 if ang < 0 else ang
