@@ -129,12 +129,19 @@ class Route:
         """
         cur_speed = rbt.get_vel().mag()
 
+      
         # print(self)
 
         dist = self.get_length()
 
+
+
         target_point = self.get_next_wp()
         end_point = self.get_dest_wp()
+
+        #   NOTE: kostil!!!!!!!
+        if (dist > 1500):
+            end_point.angle = aux.angle_to_point(rbt.get_pos(), end_point.pos) 
 
         # print(rbt.get_pos(), target_point, end_point)
         vel0 = (rbt.get_pos() - target_point.pos).unity()
@@ -173,6 +180,7 @@ class Route:
             rbt.kicker_voltage_ = 10
         else:
             rbt.dribbler_enable_ = False
+
         rbt.kick_up_ = 0
         if (end_point.type == wp.WType.S_BALL_KICK or end_point.type == wp.WType.S_BALL_GRAB) and (
             rbt.is_kick_aligned(end_point) or fld.is_ball_in(rbt)
@@ -189,7 +197,7 @@ class Route:
                 # else:
                 rbt.auto_kick_ = 1
                 if fld.is_ball_in(rbt):
-                    rbt.kick_up()
+                    rbt.kick_up_ = 1
             else:
                 rbt.auto_kick_ = 0
 

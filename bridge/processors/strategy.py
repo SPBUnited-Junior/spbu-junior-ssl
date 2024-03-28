@@ -141,7 +141,7 @@ class Strategy:
         # waypoints[9]  = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[9].get_pos(), aux.Point(0, 0)), wp.WType.S_BALL_KICK)
         self.goalk(field, waypoints, [const.GK], robot_with_ball)
 
-        # waypoints[9] = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[9].get_pos(), self.choose_kick_point(field, 9)), wp.WType.S_BALL_KICK)
+        waypoints[11] = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[11].get_pos(), self.choose_kick_point(field, 11)), wp.WType.S_BALL_KICK)
 
         self.image.draw_robot(field.allies[const.GK].get_pos(), field.allies[const.GK].get_angle())
 
