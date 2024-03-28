@@ -173,7 +173,7 @@ class Route:
             rbt.kicker_voltage_ = 10
         else:
             rbt.dribbler_enable_ = False
-
+        rbt.kick_up_ = 0
         if (end_point.type == wp.WType.S_BALL_KICK or end_point.type == wp.WType.S_BALL_GRAB) and (
             rbt.is_kick_aligned(end_point) or fld.is_ball_in(rbt)
         ):
@@ -188,6 +188,8 @@ class Route:
                 #     rbt.auto_kick_ = 2
                 # else:
                 rbt.auto_kick_ = 1
+                if fld.is_ball_in(rbt):
+                    rbt.kick_up()
             else:
                 rbt.auto_kick_ = 0
 
