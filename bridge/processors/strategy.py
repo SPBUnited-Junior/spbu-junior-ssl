@@ -127,35 +127,36 @@ class Strategy:
         # self.image.update_window()
         # self.image.draw_field()
 
+    #def estimate_point(self, field: field.Field, p1: aux.Point, p2: aux.Point):
+
+ 
     def choose_kick_point(self, field: field.Field, robot_inx: int) -> None:
-        kicker = field.allies[robot_inx]
-        my_pos = field.allies[robot_inx].get_pos()
         ball_pos = field.ball.get_pos()
 
         positions = []
         for robot in field.allies:
             if robot.r_id != field.allies[robot_inx].r_id:
-                if aux.dist(robot.get_pos(), field.enemy_goal.center) < aux.dist(field.enemy_goal.center, my_pos):
+                if aux.dist(robot.get_pos(), field.enemy_goal.center) < aux.dist(field.enemy_goal.center, ball_pos):
                     positions.append(robot.get_pos())
 
         positions = sorted(positions, key=lambda x: x.y)
 
         segments = [field.enemy_goal.goal_up]
         for p in positions:
-            tangents = aux.get_tangent_points(p, my_pos, const.ROBOT_R * 100)
+            tangents = aux.get_tangent_points(p, ball_pos, const.ROBOT_R * 100)
             if tangents is None or len(tangents) != 2:
-                print(p, my_pos, tangents)
+                print(p, ball_pos, tangents)
                 continue
             
             int1 = aux.get_line_intersection(
-                my_pos,
+                ball_pos,
                 tangents[0],
                 field.enemy_goal.goal_down,
                 field.enemy_goal.goal_up,
                 "RS",
             )
             int2 = aux.get_line_intersection(
-                my_pos,
+                ball_pos,
                 tangents[1],
                 field.enemy_goal.goal_down,
                 field.enemy_goal.goal_up,
@@ -179,7 +180,7 @@ class Strategy:
         for i in range(0, len(segments), 2):
             c = segments[i]
             a = segments[i + 1]
-            b = field.ball.get_pos()
+            b = ball_pos
             if c.y > a.y: continue #Shadow intersection
             ang = aux.get_angle_between_points(a, b, c)
             print(ang, c.y, a.y)
@@ -191,7 +192,7 @@ class Strategy:
             return None
 
         A = segments[maxId + 1]
-        B = field.ball.get_pos()
+        B = ball_pos
         C = segments[maxId]
         tmp1 = (C - B).mag()
         tmp2 = (A - B).mag()
