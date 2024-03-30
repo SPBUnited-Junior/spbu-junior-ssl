@@ -210,7 +210,7 @@ class Robot(entity.Entity):
             #self.kick_forward()
             self.dribblerEnable = False
             self.speedDribbler = 15
-            self.kickerVoltage = 15
+            self.kickerVoltage = 5
         else:
             self.dribblerEnable = False
 
