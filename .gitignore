@@ -6,3 +6,5 @@ venv
 tmp/
 .python-version
 robot_command_sink_rules
+settings.json
+bridge/processors_new/

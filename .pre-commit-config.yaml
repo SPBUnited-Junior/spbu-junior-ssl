@@ -1,0 +1,59 @@
+repos:
+
+- repo: https://github.com/PyCQA/autoflake
+  rev: v1.7.7
+  hooks:
+    - id: autoflake
+      name: Remove unused variables and imports
+      entry: autoflake
+      language: python
+      "types": [python]
+      require_serial: true
+      args:
+        - "--in-place"
+        - "--expand-star-imports"
+        - "--remove-duplicate-keys"
+        - "--remove-unused-variables"
+        - "--remove-all-unused-imports"
+        - "--ignore-init-module-imports"
+
+- repo: https://github.com/pycqa/isort
+  rev: 5.12.0
+  hooks:
+    - id: isort
+      name: Sorting import statements
+      language: python
+      types: [python]
+      args:
+        - "--profile=black"
+
+- repo: https://github.com/ambv/black
+  rev: 22.3.0
+  hooks:
+    - id: black
+      name: Black Python code formatting
+      language: python
+      types: [python]
+      args: 
+        - "--line-length=125"
+
+- repo: https://github.com/PyCQA/flake8
+  rev: 3.7.9
+  hooks:
+    - id: flake8
+      name: Flake8 PEP check
+      language: python
+      types: [python]
+      args:
+       - "--max-line-length=125"
+       - "--per-file-ignores=__init__.py:F401"
+       - "--ignore=E203,W503"
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.5.1
+  hooks:
+    - id: mypy
+      name: Static type checking
+      language: python
+      types: [python]
+      additional_dependencies: [numpy, types-PyYAML, cattrs, jinja2, attrs]

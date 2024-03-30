@@ -1,15 +1,17 @@
-import bridge.processors.auxiliary as aux
+"""
+Определение необходимых констант
+"""
 
 ##################################################
 # GAME SETTING CONSTS
-GK = 10
-PENALTY_KICKER = 9
-ENEMY_GK = 8
-IS_SIMULATOR_USED = True
+GK = 9
+PENALTY_KICKER = 1
+ENEMY_GK = 5
+IS_SIMULATOR_USED = False
 CAMERAS_COUNT: int = 4
 MAX_BALLS_IN_CAMERA: int = 64
 MAX_BALLS_IN_FIELD: int = CAMERAS_COUNT * MAX_BALLS_IN_CAMERA
-BALL_PACKET_SIZE: int = 3
+BALL_PACKET_SIZE: int = 2
 
 KEEP_BALL_DIST = 800
 
@@ -22,8 +24,7 @@ GEOMETRY_PACKET_SIZE: int = 2
 
 DEBUG_ID = 14
 DEBUG_CTRL = 14
-CONTROL_MAPPING = \
-{
+CONTROL_MAPPING: dict[int, int] = {
     # DEBUG_ID: DEBUG_CTRL
     0: 0,
     1: 1,
@@ -40,21 +41,21 @@ CONTROL_MAPPING = \
     12: 12,
     13: 13,
     14: 14,
-    None: None
+    15: 15,
 }
 
 for i in range(TEAM_ROBOTS_MAX_COUNT):
     try:
         CONTROL_MAPPING[i]
-    except:
-        CONTROL_MAPPING[i] = None
+    except KeyError:
+        CONTROL_MAPPING[i] = -1
 
 TOPIC_SINK = "control-sink"
 ##################################################
 
 ##################################################
 # CONTROL CONSTS
-Ts = 0.05 # s
+Ts = 0.05  # s
 
 # ROBOT SETTING CONSTS
 # MAX_SPEED = 100
@@ -68,10 +69,6 @@ SOFT_MAX_SPEED_R = 8
 ACCELERATION = 3
 BASE_KICKER_VOLTAGE = 7.0
 
-R_KP = 7
-R_KD = 0
-KP = 0.1
-
 GK_INTERCEPT_SPEED = 300
 GK_PEN_KICKOUT_SPEED = 500
 ##################################################
@@ -79,17 +76,17 @@ GK_PEN_KICKOUT_SPEED = 500
 
 BALL_R = 0.05
 ROBOT_R = 0.2
-GRAVEYARD_POS = aux.Point(-10000, 0)
+GRAVEYARD_POS_X = -10000
 
-POLARITY = -1
-GOAL_DX = POLARITY * 4500
+POLARITY = 1  # 1 если ворота синих на +x; -1 если ворота синих на -x
+GOAL_DX = POLARITY * 4000
 GOAL_DY = 1000
 GOAL_PEN = POLARITY * 1000
 GOAL_BOUND_OFFSET = 100
 GOAL_WALLLINE_OFFSET = 1800
 GOAL_WALL_ROBOT_SEPARATION = 150
 
-GK_FORW = 800
+GK_FORW = 750
 KICK_ALIGN_DIST = 200
 KICK_ALIGN_DIST_MULT = 1.5
 KICK_ALIGN_ANGLE = 0.1
