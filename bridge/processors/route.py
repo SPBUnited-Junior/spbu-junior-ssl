@@ -177,13 +177,12 @@ class Route:
             if end_point.type == wp.WType.S_BALL_GO:
                 angle0 = end_point.angle
 
-            rbt.dribbler_enable_ = True
-            rbt.dribbler_speed_ = 15
-            rbt.kicker_voltage_ = 10
+            #rbt.dribbler_enable_ = True
+            #rbt.dribbler_speed_ = 15
+            rbt.kicker_voltage_ = 15
         else:
             rbt.dribbler_enable_ = False
 
-        rbt.kick_up_ = 0
         if (end_point.type == wp.WType.S_BALL_KICK or end_point.type == wp.WType.S_BALL_GRAB) and (
             rbt.is_kick_aligned(end_point) or fld.is_ball_in(rbt)
         ):
@@ -197,9 +196,7 @@ class Route:
                 # if rbt.get_pos().x * field.polarity > 500:
                 #     rbt.auto_kick_ = 2
                 # else:
-                rbt.auto_kick_ = 1
-                if fld.is_ball_in(rbt):
-                    rbt.kick_up_ = 1
+                rbt.auto_kick_ = 2
             else:
                 rbt.auto_kick_ = 0
 

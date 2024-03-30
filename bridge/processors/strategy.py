@@ -61,6 +61,12 @@ class Strategy:
         self.goalUp = 500
         self.goalDown = -500
 
+        self.n = 3
+        self.angleMyRobot = 0#aux.Point(0, 0)
+        self.choosedKick = False
+        self.passInd = -1
+        self.xR = 2250
+
         self.image = draw.Image()
         self.ball_start_point: Optional[aux.Point] = None
 
@@ -69,8 +75,9 @@ class Strategy:
         Рассчитать конечные точки для каждого робота
         """
 
+        #const.GRAVEYARD_POS_X
         waypoints: list[wp.Waypoint] = [
-            wp.Waypoint(aux.Point(const.GRAVEYARD_POS_X, 0), 0, wp.WType.S_IGNOREOBSTACLES)
+            wp.Waypoint(aux.Point(0, 0), 0, wp.WType.S_STOP)
         ] * const.TEAM_ROBOTS_MAX_COUNT
 
         if self.game_status == GameStates.RUN:
@@ -125,40 +132,123 @@ class Strategy:
         elif minDistEnemy - minDistAllies > 30:
             return iAllies
         return None
+    
+    def trueBallCoordinate(self, p):
+        return not(p.x == -10000 and p.y == 0)
+
+    def kickToGoal(self, field: field.Field, robotInx):
+        myPos = field.allies[robotInx].get_pos()
+        ballPos = field.ball.get_pos()#getPos() 
+
+        poses = []
+        poses.append(aux.Point(self.xR, self.goalUp))
+        for i in range(self.n):
+            poses.append(field.enemies[i].get_pos())
+            if i != robotInx: 
+                poses.append(field.allies[i].get_pos())
+        poses.append(aux.Point(self.xR, self.goalDown))
+        
+        central = []
+        for i in range(len(poses)):
+            #print("COORD:", poses[i].x, poses[i].y)
+            dist = aux.dist(ballPos, poses[i])
+            #print()
+            if poses[i].x != ballPos.x: D = abs(dist * (self.xR - ballPos.x) / (poses[i].x - ballPos.x))
+            else: D = dist
+            
+            if (5 + self.robotRadius) / dist > 1: alphaNew = math.asin(1)
+            else: alphaNew = math.asin((5 + self.robotRadius) / dist)
+            
+            gamma = math.acos(abs(poses[i].x - ballPos.x) / dist) - alphaNew
+            downDist = math.sqrt(D**2 - (self.xR - ballPos.x)**2) - abs(self.xR - ballPos.x) * math.tan(gamma) #HASHUV
+            
+            if abs(D * math.sin(alphaNew) / downDist) <= 1:
+                bettaNew = math.asin(D * math.sin(alphaNew) / downDist) 
+            elif math.sin(alphaNew) > 1: bettaNew = math.asin(1)
+            else: bettaNew = math.asin(-1)
+            
+            #upDist = D * math.sin(alphaNew) / math.sin(math.pi - 2 * alphaNew - bettaNew) #HASHUV
+            upDist = abs(self.xR - ballPos.x) * math.tan(gamma + 2 * alphaNew) - abs(self.xR - ballPos.x) * math.tan(gamma) - downDist
+
+            if ballPos.y > poses[i].y: 
+                #(downDist, upDist) = (upDist, downDist)
+                ycc = ballPos.y - D * math.sin(alphaNew + gamma)
+            else:
+                (downDist, upDist) = (upDist, downDist) 
+                ycc = ballPos.y + D * math.sin(alphaNew + gamma)
+        
+            if upDist < downDist: (downDist, upDist) = (upDist, downDist)
+
+            #if ycc + upDist > self.goalDown and ycc - downDist  < self.goalUp:
+            if ycc > self.goalDown - self.robotRadius and ycc < self.goalUp + self.robotRadius:
+                central.append([ycc, ycc + upDist, ycc - downDist])
+        
+        central = sorted(central, key = lambda x: x[0])
+        #for i in range(len(central)):
+        #   print(central[i][0], central[i][1], central[i][2])
+
+        maxiAngle = -4 * math.pi
+        rememberI = -2
+        for i in range(len(central) - 1):
+            lookUp = central[i + 1][2]
+            lookDown = central[i][1]
+
+            #print(lookUp, lookDown)
+            if lookUp < lookDown: 
+                continue
+
+            if lookDown < lookUp:
+                bokDown = math.sqrt((ballPos.x - self.xR)**2 + (ballPos.y - lookDown)**2)
+                bokUp = math.sqrt((ballPos.x - self.xR)**2 + (ballPos.y - lookUp)**2)
+                v1 = aux.Point(self.xR - ballPos.x, lookDown - ballPos.y)
+                v2 = aux.Point(self.xR - ballPos.x, lookUp - ballPos.y)
+                
+                if (v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp) > 1: 
+                    angleBetweenVectors = math.acos(1)
+                elif (v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp) < -1: 
+                    angleBetweenVectors = math.acos(-1)
+                else: 
+                    angleBetweenVectors = math.acos((v1.x * v2.x + v1.y * v2.y) / (bokDown * bokUp))
+
+                if angleBetweenVectors > maxiAngle:
+                    maxiAngle = angleBetweenVectors
+                    rememberI = i
+        
+        canKickToGoal = False
+        if rememberI != -2:
+            lookUp = central[rememberI + 1][2]
+            lookDown = central[rememberI][1]
+
+            bokDown = math.sqrt((ballPos.x - self.xR)**2 + (ballPos.y - lookDown)**2)
+            bokUp = math.sqrt((ballPos.x - self.xR)**2 + (ballPos.y - lookUp)**2)
+            osn = lookUp - lookDown
+            distUp = osn * bokUp / (bokUp + bokDown)
+            
+            self.yR = lookUp - distUp
+            canKickToGoal = True
+        else: self.yR = 0
+        
+        if canKickToGoal: return math.atan2(self.yR - myPos.y, self.xR - myPos.x)
+        else: return None
 
     def run(self, field: field.Field, waypoints: list[wp.Waypoint]) -> None:
-        # print(field.ball.get_vel().mag() < 100)
-        for robo in field.allies:
-            waypoints[robo.r_id] = wp.Waypoint(
-                field.ball.get_pos(), aux.angle_to_point(robo.get_pos(), field.ally_goal.center), wp.WType.S_STOP
-            )
+        if (field.ball.get_pos().x == 0 and field.ball.get_pos().y == 0) \
+            or self.trueBallCoordinate(field.ball.get_pos()): 
+            self.angleMyRobot = self.kickToGoal(field, 1) 
 
-        # field.ball.get_pos() - координаты мяча
-        # field.enemies[i].get_pos() - координаты робота соперника с id i
-        # field.allies[i].get_pos() - координаты робота союзника с id i
+        if self.angleMyRobot == None: 
+            if self.xR > 0: 
+                self.angleMyRobot = math.pi/2 + math.atan2(field.allies[1].get_pos().y, 
+                           field.allies[1].get_pos().x - self.xR)
+            else: self.angleMyRobot = math.pi + math.atan2(field.allies[1].get_pos().y, 
+                           field.allies[1].get_pos().x - self.xR)
+        #pass
+        #waypoints[1] = wp.Waypoint(aux.Point(0, 0), 0, wp.WType.S_BALL_KICK)
+        #print(field.ball.get_pos().x, field.ball.get_pos().y)
+        #angle = math.pi + math.atan2(field.allies[1].get_pos().y - field.ball.get_pos().y, 
+        #                   field.allies[1].get_pos().x - field.ball.get_pos().x)
 
-        robot_with_ball = rb.find_nearest_robot(field.ball.get_pos(), field.allies)
-
-        # waypoints[9]  = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[9].get_pos(), aux.Point(0, 0)), wp.WType.S_BALL_KICK)
-        # self.goalk(field, waypoints, [const.GK], robot_with_ball)
-
-        # waypoints[11] = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[11].get_pos(), self.choose_kick_point(field, 11)), wp.WType.S_ENDPOINT)
-
-        self.image.draw_robot(field.allies[const.GK].get_pos(), field.allies[const.GK].get_angle())
-
-        self.image.update_window()
-        self.image.draw_field()
-
-        if time() % 10 < 5:
-            waypoints[9]  = wp.Waypoint(aux.Point(1000, 0), 3.1415, wp.WType.S_ENDPOINT)
-        else:
-            waypoints[9]  = wp.Waypoint(aux.Point(-1000, 0), 0, wp.WType.S_ENDPOINT)
-        waypoints[9]  = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.ball.get_pos(), field.enemy_goal.center), wp.WType.S_BALL_KICK)
-
-        # if field.allies[9].get_anglevel() > 0:
-        #     waypoints[9]  = wp.Waypoint(aux.Point(0, 0), field.allies[9].get_angle() - math.pi / 4, wp.WType.S_ENDPOINT)
-        # else:
-        #     waypoints[9]  = wp.Waypoint(aux.Point(0, 0), field.allies[9].get_angle() + math.pi / 4, wp.WType.S_ENDPOINT)
+        waypoints[1] = wp.Waypoint(field.ball.get_pos(), self.angleMyRobot, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
 
   
     def choose_kick_point(self, field: field.Field, robot_inx: int) -> Optional[aux.Point]:
@@ -231,7 +321,8 @@ class Strategy:
         pnt = C + CA * 0.5 * (tmp1 / tmp2)
         self.image.draw_dot(pnt, 10, [255, 0, 0])
         return pnt
-    def goalk(
+    
+    '''def goalk(
         self, field: field.Field, waypoints: list[wp.Waypoint], gk_wall_idx_list: list[int], robot_with_ball: rb.Robot
     ) -> None:
         gk_pos = None
@@ -301,3 +392,4 @@ class Strategy:
         # for i in range(len(gk_wall_idx_list) - 1):
         #     wall.append(walline - walldir * (i + 1) * dirsign * (1 + (i % 2) * -2) * const.GOAL_WALL_ROBOT_SEPARATION)
         #     waypoints[gk_wall_idx_list[i + 1]] = wp.Waypoint(wall[i], walldir.arg(), wp.WType.S_ENDPOINT)
+'''
