@@ -9,6 +9,7 @@ import math
 # !v DEBUG ONLY
 from enum import Enum
 from typing import Optional
+from time import time
 
 import bridge.processors.auxiliary as aux
 import bridge.processors.const as const
@@ -139,14 +140,25 @@ class Strategy:
         robot_with_ball = rb.find_nearest_robot(field.ball.get_pos(), field.allies)
 
         # waypoints[9]  = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[9].get_pos(), aux.Point(0, 0)), wp.WType.S_BALL_KICK)
-        self.goalk(field, waypoints, [const.GK], robot_with_ball)
+        # self.goalk(field, waypoints, [const.GK], robot_with_ball)
 
-        waypoints[11] = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[11].get_pos(), self.choose_kick_point(field, 11)), wp.WType.S_BALL_KICK)
+        # waypoints[11] = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.allies[11].get_pos(), self.choose_kick_point(field, 11)), wp.WType.S_ENDPOINT)
 
         self.image.draw_robot(field.allies[const.GK].get_pos(), field.allies[const.GK].get_angle())
 
         self.image.update_window()
         self.image.draw_field()
+
+        if time() % 10 < 5:
+            waypoints[9]  = wp.Waypoint(aux.Point(1000, 0), 3.1415, wp.WType.S_ENDPOINT)
+        else:
+            waypoints[9]  = wp.Waypoint(aux.Point(-1000, 0), 0, wp.WType.S_ENDPOINT)
+        waypoints[9]  = wp.Waypoint(field.ball.get_pos(), aux.angle_to_point(field.ball.get_pos(), field.enemy_goal.center), wp.WType.S_BALL_KICK)
+
+        # if field.allies[9].get_anglevel() > 0:
+        #     waypoints[9]  = wp.Waypoint(aux.Point(0, 0), field.allies[9].get_angle() - math.pi / 4, wp.WType.S_ENDPOINT)
+        # else:
+        #     waypoints[9]  = wp.Waypoint(aux.Point(0, 0), field.allies[9].get_angle() + math.pi / 4, wp.WType.S_ENDPOINT)
 
   
     def choose_kick_point(self, field: field.Field, robot_inx: int) -> Optional[aux.Point]:

@@ -139,9 +139,9 @@ class Route:
         target_point = self.get_next_wp()
         end_point = self.get_dest_wp()
 
-        #   NOTE: kostil!!!!!!!
-        if (dist > 1500):
-            end_point.angle = aux.angle_to_point(rbt.get_pos(), end_point.pos) 
+        # #   NOTE: kostil!!!!!!!
+        # if (dist > 1500):
+        #     end_point.angle = aux.angle_to_point(rbt.get_pos(), end_point.pos) 
 
         # print(rbt.get_pos(), target_point, end_point)
         vel0 = (rbt.get_pos() - target_point.pos).unity()
