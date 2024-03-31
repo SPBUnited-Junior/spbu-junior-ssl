@@ -23,6 +23,11 @@ class Image:
     """
 
     def __init__(self) -> None:
+        self.disable = True
+
+        if self.disable:
+            return
+
         pygame.init()
         width, heigh = 1200, 900
         self.screen = pygame.display.set_mode((width, heigh), pygame.RESIZABLE)
@@ -40,10 +45,14 @@ class Image:
         self.size_x = goal_dx * self.scale * 2
         self.size_y = goal_dy * self.scale * 2
 
+
     def draw_field(self) -> None:
         """
         draw green field and white lines
         """
+        if self.disable:
+            return
+
         back_color = (128, 128, 128)
         field_color = (20, 178, 10)
         line_color = (255, 255, 255)
@@ -64,6 +73,8 @@ class Image:
         """
         draw robot
         """
+        if self.disable:
+            return
         robot_color = (0, 0, 255)
         robot_radius = 20
         robot_length = 40
@@ -78,10 +89,12 @@ class Image:
             self.screen, robot_color, [r.x * self.scale + self.middle_x, -r.y * self.scale + self.middle_y], end_point, 2
         )
 
-    def draw_dot(self, pos: aux.Point, size: float = 3, color: tuple[int, int, int] = (255, 0, 0)) -> None:
+    def draw_dot(self, pos: aux.Point, size: float = 3, color: tuple[int, int, int] = [255, 0, 0]) -> None:
         """
         draw single point
         """
+        if self.disable:
+            return
         pygame.draw.circle(
             self.screen, color, (pos.x * self.scale + self.middle_x, -pos.y * self.scale + self.middle_y), size
         )
@@ -91,6 +104,8 @@ class Image:
         """
         update image
         """
+        if self.disable:
+            return
         pygame.display.flip()
         self.draw_field()
 
@@ -100,6 +115,8 @@ class Image:
         """
         draw full trajectory with speed v2 in end point if max speed isn't achieved
         """
+        if self.disable:
+            return
         v = trapeze(pos2 - pos1, v1, v2)
         if v is None:
             print("error for:", pos2 - pos1, v1, v2)
@@ -161,6 +178,8 @@ class Image:
         """
         draw full trajectory with speed v2 in end point if max speed isn't achieved
         """
+        if self.disable:
+            return
         v = trapeze(pos2 - pos1, v1, v2)
         if v is None:
             print("error for:", pos2 - pos1, v1, v2)

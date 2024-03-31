@@ -112,6 +112,35 @@ class SSLController(BaseProcessor):
                     self.field.y_team[i].used(0)
 
             # self.strategy.changeGameState(strategy.GameStates.RUN, 0)
+                    
+            '''game_controller_mapping = {
+                1: strategy.GameStates.STOP,
+                2: strategy.GameStates.RUN,
+                3: strategy.GameStates.TIMEOUT,
+                4: strategy.GameStates.HALT,
+                5: strategy.GameStates.PREPARE_KICKOFF,
+                6: strategy.GameStates.KICKOFF,
+                7: strategy.GameStates.PREPARE_PENALTY,
+                8: strategy.GameStates.PENALTY,
+                9: strategy.GameStates.FREE_KICK,
+                10: strategy.GameStates.HALT,
+                11: strategy.GameStates.BALL_PLACMENT,
+            }
+
+            cur_cmd = self.get_last_referee_command()
+            if cur_cmd.state == 0:
+                self.count_halt_cmd += 1
+            else:
+                self.count_halt_cmd = 0
+                self.strategy.change_game_state(game_controller_mapping[cur_cmd.state], cur_cmd.commandForTeam)
+                if cur_cmd.state == 4:
+                    print("End game")
+                elif cur_cmd.state == 10:
+                    print("Uknown command 10")
+            
+            if self.count_halt_cmd > 10:
+               self.strategy.change_game_state(strategy.GameStates.HALT, cur_cmd.commandForTeam)'''
+            self.strategy.change_game_state(strategy.GameStates.RUN, 0)
 
             # TODO: Barrier states
             for robot_det in detection.robots_blue:

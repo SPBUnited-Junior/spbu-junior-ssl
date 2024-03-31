@@ -15,7 +15,7 @@ import bridge.processors.auxiliary as aux
 import bridge.processors.const as const
 import bridge.processors.drawing as draw
 import bridge.processors.field as field
-import bridge.processors.robot as rb
+import bridge.processors.robot as robot
 import bridge.processors.waypoint as wp
 
 
@@ -82,12 +82,11 @@ class Strategy:
 
         if self.game_status == GameStates.RUN:
             self.run(field, waypoints)
-        """else:
+        else:
             if self.game_status == GameStates.TIMEOUT:
                 self.timeout(field, waypoints)
             elif self.game_status == GameStates.HALT:
-                pass
-                # self.halt(field, waypoints)
+                self.halt(field, waypoints)
             elif self.game_status == GameStates.PREPARE_PENALTY:
                 self.prepare_penalty(field, waypoints)
             elif self.game_status == GameStates.PENALTY:
@@ -101,10 +100,20 @@ class Strategy:
             elif self.game_status == GameStates.FREE_KICK:
                 self.free_kick(field, waypoints)
             elif self.game_status == GameStates.STOP:
-                self.keep_distance(field, waypoints)"""
+                self.keep_distance(field, waypoints)
 
         # print(self.game_status, self.state)
         return waypoints
+    
+    def change_game_state(self, new_state: GameStates, upd_active_team: int) -> None:
+        """Изменение состояния игры и цвета команды"""
+        self.game_status = new_state
+        if upd_active_team == 0:
+            self.active_team = ActiveTeam.ALL
+        elif upd_active_team == 2:
+            self.active_team = ActiveTeam.YELLOW
+        elif upd_active_team == 1:
+            self.active_team = ActiveTeam.BLUE
 
     def getIndexHolding(
         self, field: field.Field
@@ -152,6 +161,8 @@ class Strategy:
         for i in range(len(poses)):
             #print("COORD:", poses[i].x, poses[i].y)
             dist = aux.dist(ballPos, poses[i])
+            if dist == 0:
+                continue
             #print()
             if poses[i].x != ballPos.x: D = abs(dist * (self.xR - ballPos.x) / (poses[i].x - ballPos.x))
             else: D = dist
@@ -247,8 +258,9 @@ class Strategy:
         #print(field.ball.get_pos().x, field.ball.get_pos().y)
         #angle = math.pi + math.atan2(field.allies[1].get_pos().y - field.ball.get_pos().y, 
         #                   field.allies[1].get_pos().x - field.ball.get_pos().x)
-
+        robot_with_ball = robot.find_nearest_robot(field.ball.get_pos(), field.enemies)
         waypoints[1] = wp.Waypoint(field.ball.get_pos(), self.angleMyRobot, wp.WType.S_BALL_KICK)# - задать точку для езды. Куда, с каким углом, тип.
+        self.goalk(field, waypoints, [0, 2], robot_with_ball)
 
   
     def choose_kick_point(self, field: field.Field, robot_inx: int) -> Optional[aux.Point]:
@@ -322,8 +334,8 @@ class Strategy:
         self.image.draw_dot(pnt, 10, [255, 0, 0])
         return pnt
     
-    '''def goalk(
-        self, field: field.Field, waypoints: list[wp.Waypoint], gk_wall_idx_list: list[int], robot_with_ball: rb.Robot
+    def goalk(
+        self, field: field.Field, waypoints: list[wp.Waypoint], gk_wall_idx_list: list[int], robot_with_ball
     ) -> None:
         gk_pos = None
         if robot_with_ball is not None:
@@ -348,9 +360,7 @@ class Strategy:
                     ),
                     0.5,
                 )
-                # print("PREDICTION: ", robot_with_ball.getAngle())
 
-        # print(field.ball.vel.mag())
         if field.is_ball_moves_to_goal():
             if self.ball_start_point is None:
                 self.ball_start_point = field.ball.get_pos()
@@ -361,11 +371,12 @@ class Strategy:
                 gk_pos = aux.closest_point_on_line(field.ball.get_pos(), tmpPos, field.allies[gk_wall_idx_list[0]].get_pos())
         else:
             self.ball_start_point = None
-        #gk_pos = aux.Point(-1000, -100)
 
         if gk_pos is None:
-            gk_pos = aux.point_on_line(field.ally_goal.center, field.ball.get_pos(), const.GK_FORW)
-
+            gk_pos = aux.point_on_line(field.ally_goal.center - field.ally_goal.eye_forw * 1000, field.ball.get_pos(), const.GK_FORW + 1000)
+            gk_pos.x = min(field.ally_goal.center.x + field.ally_goal.eye_forw.x * 300, gk_pos.x, key=lambda x: abs(x))
+            if abs(gk_pos.y) > abs(field.ally_goal.goal_up.y):
+                gk_pos.y = abs(field.ally_goal.goal_up.y) * abs(gk_pos.y) / gk_pos.y
             self.image.draw_dot(gk_pos, 10, [255, 255, 255])
         else:
             self.image.draw_dot(gk_pos, 10, [0, 0, 0])
@@ -375,21 +386,20 @@ class Strategy:
 
         self.image.draw_dot(field.ball.get_pos(), 5)
 
-        # print(field.isBallInGoalSq(), field.ball.get_pos())
         if field.is_ball_stop_near_goal():
             waypoints[gk_wall_idx_list[0]] = wp.Waypoint(
-                field.ball.get_pos(), field.ally_goal.eye_forw.arg(), wp.WType.S_BALL_KICK
+                field.ball.get_pos(), field.ally_goal.eye_forw.arg(), wp.WType.S_BALL_KICK_UP
             )
 
-        # wallline = [field.ally_goal.forw + field.ally_goal.eye_forw * const.GOAL_WALLLINE_OFFSET]
-        # wallline.append(wallline[0] + field.ally_goal.eye_up)
+        wallline = [field.ally_goal.forw + field.ally_goal.eye_forw * const.GOAL_WALLLINE_OFFSET]
+        wallline.append(wallline[0] + field.ally_goal.eye_up)
 
-        # walline = aux.point_on_line(field.ally_goal.center, field.ball.get_pos(), const.GOAL_WALLLINE_OFFSET)
-        # walldir = aux.rotate((field.ally_goal.center - field.ball.get_pos()).unity(), math.pi / 2)
-        # dirsign = -aux.sign(aux.vec_mult(field.ally_goal.center, field.ball.get_pos()))
+        walline = aux.point_on_line(field.ally_goal.center, field.ball.get_pos(), const.GOAL_WALLLINE_OFFSET)
+        walldir = aux.rotate((field.ally_goal.center - field.ball.get_pos()).unity(), math.pi / 2)
+        dirsign = -aux.sign(aux.vec_mult(field.ally_goal.center, field.ball.get_pos()))
 
-        # wall = []
-        # for i in range(len(gk_wall_idx_list) - 1):
-        #     wall.append(walline - walldir * (i + 1) * dirsign * (1 + (i % 2) * -2) * const.GOAL_WALL_ROBOT_SEPARATION)
-        #     waypoints[gk_wall_idx_list[i + 1]] = wp.Waypoint(wall[i], walldir.arg(), wp.WType.S_ENDPOINT)
-'''
+        wall = []
+        for i in range(len(gk_wall_idx_list) - 1):
+            wall.append(walline - walldir * (i + 1) * dirsign * (1 + (i % 2) * -2) * const.GOAL_WALL_ROBOT_SEPARATION)
+            waypoints[gk_wall_idx_list[i + 1]] = wp.Waypoint(wall[i], walldir.arg(), wp.WType.S_IGNOREOBSTACLES)
+
