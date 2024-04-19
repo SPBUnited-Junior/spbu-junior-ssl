@@ -70,11 +70,17 @@ class Robot(entity.Entity):
 
         # !v REAL
         # if self.r_id != const.GK:
-        gains_full = [16, 0.6, 0, const.MAX_SPEED]  #3, 0.3
-        gains_soft = [16, 0.6, 0, const.SOFT_MAX_SPEED]
-        # gains_soft = gains_full
-        a_gains_full = [7, 0.31, 0.1, const.MAX_SPEED_R]
-        a_gains_soft = [7, 0.08, 4, const.SOFT_MAX_SPEED_R]
+        if not const.IS_SIMULATOR_USED:
+            gains_full = [10, 0.4, 0, const.MAX_SPEED]  #3, 0.3
+            gains_soft = [8, 0.3, 0, const.SOFT_MAX_SPEED]
+            a_gains_full = [6, 0.31, 0.1, const.MAX_SPEED_R]
+            a_gains_soft = [7, 0.08, 10, const.SOFT_MAX_SPEED_R]
+        else:
+            gains_full = [6, 0.8, 0, const.MAX_SPEED]  #3, 0.3
+            gains_soft = [8, 0.5, 0, const.SOFT_MAX_SPEED]
+            a_gains_full = [4, 0.1, 0.1, const.MAX_SPEED_R]
+            a_gains_soft = [4, 0.04, 4, const.SOFT_MAX_SPEED_R]
+        
         # a_gains_soft = a_gains_full
         # else:
         #     gains_full = [6, 0.8, 0, const.MAX_SPEED]
@@ -236,7 +242,7 @@ class Robot(entity.Entity):
         vec_speed = math.sqrt(self.speed_x**2 + self.speed_y**2)
         r_speed = abs(self.speed_r)
 
-        vec_speed *= ((const.MAX_SPEED_R - r_speed) / const.MAX_SPEED_R) ** 4
+        vec_speed *= ((const.MAX_SPEED_R - r_speed) / const.MAX_SPEED_R) ** 2
         ang = math.atan2(self.speed_y, self.speed_x)
         self.speed_x = vec_speed * math.cos(ang)
         self.speed_y = vec_speed * math.sin(ang)

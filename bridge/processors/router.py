@@ -38,6 +38,7 @@ class Router:
         Установить единственную путевую точку для робота с индексом idx
         """
         if idx != const.GK:
+
             # self_pos = fld.allies[idx].get_pos()
             dest_pos = target.pos
             for goal in [fld.ally_goal, fld.enemy_goal]:

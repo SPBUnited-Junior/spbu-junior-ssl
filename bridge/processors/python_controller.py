@@ -95,9 +95,10 @@ class SSLController(BaseProcessor):
             if geometry:
                 field_info[0] = geometry.field.field_length
                 field_info[1] = geometry.field.field_width
-                if geometry.field.field_length != 0 and geometry.field.goal_width != 0:
-                    const.GOAL_DX = geometry.field.field_length / 2
-                    const.GOAL_DY = geometry.field.goal_width
+                # if geometry.field.field_length != 0 and geometry.field.goal_width != 0:
+                #     print("aaaa")
+                #     const.GOAL_DX = geometry.field.field_length / 2
+                #     const.GOAL_DY = geometry.field.goal_width
 
             detection = ssl_package_content.detection
             detection.camera_id

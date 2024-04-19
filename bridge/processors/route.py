@@ -200,7 +200,7 @@ class Route:
             else:
                 rbt.auto_kick_ = 0
 
-            transl_vel = vel0 * 200
+            transl_vel = vel0 * 300
 
         else:
             rbt.auto_kick_ = 0

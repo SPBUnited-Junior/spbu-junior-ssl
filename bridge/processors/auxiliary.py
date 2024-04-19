@@ -184,6 +184,11 @@ def dist(a: Point, b: Point) -> float:
     """
     return math.hypot(a.x - b.x, a.y - b.y)
 
+def pointsAreEqual(a: Point, b: Point):
+    """
+    Функция выдает True, если точки почти одинаковы, False в обратном случае
+    """
+    return dist(a, b) <= 3
 
 def get_line_intersection(
     line1_start: Point, line1_end: Point, line2_start: Point, line2_end: Point, is_inf: str = "SS"
@@ -195,9 +200,9 @@ def get_line_intersection(
     задает параметры первой прямой, B - второй.
 
     S(segment) - задан отрезок
-    R(ay) - задан луч (начало - _start, направление - _end), точка пересечения валидна только
+    R(ray) - задан луч (начало - _start, направление - _end), точка пересечения валидна только
     если находится на луче _start-_end
-    L(ine) - задана прямая
+    L(line) - задана прямая
     """
     # Calculate the differences
     delta_x1 = line1_end.x - line1_start.x
@@ -210,7 +215,7 @@ def get_line_intersection(
 
     if determinant == 0:
         # The lines are parallel or coincident
-        return None
+        return Point(None, None)
 
     # Calculate the differences between the start points
     delta_x_start = line1_start.x - line2_start.x
@@ -234,7 +239,7 @@ def get_line_intersection(
     if first_valid and second_valid:
         return p
 
-    return None
+    return Point(None, None)
 
 
 def vec_mult(v: Point, u: Point) -> float:
@@ -284,10 +289,11 @@ def wind_down_angle(angle: float) -> float:
         angle -= 2 * math.pi
     return angle
 
-
-def closest_point_on_line(point1: Point, point2: Point, point: Point) -> typing.Optional[Point]:
+def closest_point_on_line(point1: Point, point2: Point, point: Point, isLine = None) -> typing.Optional[Point]:
     """
-    Получить ближайшую к точке point току на линии point1-point2
+    Получить ближайшую к точке point точку на линии point1-point2
+    isLine показывает берется ли ближайшая точка на отрезке или прямой point1-point2
+    По дефолту берется значение для отрезка
     """
     if point1 is None or point2 is None:
         return None
@@ -302,14 +308,22 @@ def closest_point_on_line(point1: Point, point2: Point, point: Point) -> typing.
     point_vector = (point.x - point1.x, point.y - point1.y)
     dot_product = point_vector[0] * line_direction[0] + point_vector[1] * line_direction[1]
 
-    if dot_product <= 0:
-        return point1
-    if dot_product >= line_length:
-        return point2
+    if isLine == None:
+        if dot_product <= 0:
+            return point1
+        if dot_product >= line_length:
+            return point2
 
     closest_point = Point(point1.x + line_direction[0] * dot_product, point1.y + line_direction[1] * dot_product)
 
     return closest_point
+
+def isPointOnLine(point1: Point, point2: Point, point: Point) -> bool:
+    """
+    Проверяет находится ли точка point на прямой point1-point2
+    """
+    distToline = dist2line(point1, point2, point)
+    return distToline <= 1000 * const.ROBOT_R / 4
 
 
 def point_on_line(robo: Point, point: Point, distance: float) -> Point:

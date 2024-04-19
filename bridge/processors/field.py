@@ -44,6 +44,7 @@ class Goal:
             self.down - self.eye_up * const.GOAL_BOUND_OFFSET,
             aux.GRAVEYARD_POS * self.eye_forw.x,
         ]
+        print(self.forwup)
 
         # Попуск
         self.popusk_positions = [
@@ -87,9 +88,6 @@ class Field:
         self.enemy_goal = Goal(
             -const.GOAL_DX * self.polarity, -const.GOAL_DY * self.polarity, -const.GOAL_PEN * self.polarity
         )
-
-        # NOTE: DEBUG!!!!!!!!
-        self.enemy_goal = self.ally_goal
 
         if self.ally_color == "b":
             self.allies = [*self.b_team]
