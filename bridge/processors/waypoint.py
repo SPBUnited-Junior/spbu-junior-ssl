@@ -25,9 +25,14 @@ class WType(Enum):
     S_BALL_GRAB = 4  # Захватить мяч не пиная
     S_KEEP_BALL_DISTANCE = 5
     S_STOP = 6  # Kostil for stopping
+    S_BALL_KICK_UP = 7  # Захватить мяч и мгновенно его пнуть up
+    S_VELOCITY = 8  # Разворачиваться с мячом
+    # waypoint.pos - скорость; waypoint.angle - угловая скорость
+    S_BALL_PASS = 9  # Give pass to point
 
     R_PASSTHROUGH = 10  # Двигаться в точку не останавливаясь (промежуточная точка пути)
     R_BALL_ALIGN = 11  # Выровняться напротив мяча, приготовившись его захватить
+    R_IGNORE_GOAl_HULL = 12
 
     T_GRAVEYARD = 100
 

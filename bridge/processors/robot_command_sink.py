@@ -13,6 +13,8 @@ import bridge.processors.auxiliary as aux
 import bridge.processors.const as const
 import bridge.processors.robot as robot
 
+from time import time
+
 
 @attr.s(auto_attribs=True)
 class CommandSink(BaseProcessor):
@@ -48,15 +50,17 @@ class CommandSink(BaseProcessor):
         cmds = self.commands_sink_reader.read_new()
 
         for cmd in cmds:
-            r = cmd.content
+            r: robot.Robot = cmd.content
+            if not r.is_used():
+                continue
             ctrl_id = r.ctrl_id
 
             if ctrl_id is None:
                 continue
 
-            if r.color == "b":
+            if r.color == const.Color.BLUE:
                 self.b_control_team[ctrl_id].copy_control_fields(r)
-            elif r.color == "y":
+            elif r.color == const.Color.YELLOW:
                 self.y_control_team[ctrl_id].copy_control_fields(r)
 
         rules = self.get_rules()
@@ -69,47 +73,84 @@ class CommandSink(BaseProcessor):
         """
         rules: list[float] = []
 
-        for i in range(const.TEAM_ROBOTS_MAX_COUNT):
-            if abs(self.b_control_team[i].speed_x) < 1.5:
-                self.b_control_team[i].speed_x = 0
-            if abs(self.b_control_team[i].speed_y) < 1.5:
-                self.b_control_team[i].speed_y = 0
-            if abs(self.b_control_team[i].speed_r) < 1.5:
-                self.b_control_team[i].speed_r = 0
-            rules.append(0)
-            rules.append(self.b_control_team[i].speed_x)
-            rules.append(self.b_control_team[i].speed_y)
-            rules.append(self.b_control_team[i].speed_r)
-            rules.append(self.b_control_team[i].kick_forward_)
-            rules.append(self.b_control_team[i].kick_up_)
-            rules.append(self.b_control_team[i].auto_kick_)
-            rules.append(self.b_control_team[i].kicker_voltage_)
-            rules.append(self.b_control_team[i].dribbler_enable_)
-            rules.append(self.b_control_team[i].dribbler_speed_)
-            rules.append(self.b_control_team[i].kicker_charge_enable_)
-            rules.append(self.b_control_team[i].beep)
-            rules.append(0)
-        for i in range(const.TEAM_ROBOTS_MAX_COUNT):
-            if abs(self.y_control_team[i].speed_x) < 1.5:
-                self.y_control_team[i].speed_x = 0
-            if abs(self.y_control_team[i].speed_y) < 1.5:
-                self.y_control_team[i].speed_y = 0
-            if abs(self.y_control_team[i].speed_r) < 1.5:
-                self.y_control_team[i].speed_r = 0
-            rules.append(0)
-            rules.append(self.y_control_team[i].speed_x)
-            rules.append(self.y_control_team[i].speed_y)
-            rules.append(self.y_control_team[i].speed_r)
-            rules.append(self.y_control_team[i].kick_forward_)
-            rules.append(self.y_control_team[i].kick_up_)
-            rules.append(self.y_control_team[i].auto_kick_)
-            rules.append(self.y_control_team[i].kicker_voltage_)
-            rules.append(self.y_control_team[i].dribbler_enable_)
-            rules.append(self.y_control_team[i].dribbler_speed_)
-            rules.append(self.y_control_team[i].kicker_charge_enable_)
-            rules.append(self.y_control_team[i].beep)
-            rules.append(0)
+        if const.IS_SIMULATOR_USED:
+            for i in range(const.TEAM_ROBOTS_MAX_COUNT):
+                if abs(self.b_control_team[i].speed_x) < 1.5:
+                    self.b_control_team[i].speed_x = 0
+                if abs(self.b_control_team[i].speed_y) < 1.5:
+                    self.b_control_team[i].speed_y = 0
+                if abs(self.b_control_team[i].speed_r) < 1.5:
+                    self.b_control_team[i].speed_r = 0
+                rules.append(0)
+                rules.append(self.b_control_team[i].speed_x)
+                rules.append(self.b_control_team[i].speed_y)
+                rules.append(self.b_control_team[i].speed_r)
+                rules.append(self.b_control_team[i].kick_up_)
+                rules.append(self.b_control_team[i].kick_forward_)
+                rules.append(self.b_control_team[i].auto_kick_)
+                rules.append(self.b_control_team[i].kicker_voltage_ // 2)
+                rules.append(self.b_control_team[i].dribbler_enable_)
+                rules.append(self.b_control_team[i].dribbler_speed_)
+                rules.append(self.b_control_team[i].kicker_charge_enable_)
+                rules.append(self.b_control_team[i].beep)
+                rules.append(0)
 
-        # rules = [15] * 15 * 32
+            for i in range(const.TEAM_ROBOTS_MAX_COUNT):
+                if abs(self.y_control_team[i].speed_x) < 1.5:
+                    self.y_control_team[i].speed_x = 0
+                if abs(self.y_control_team[i].speed_y) < 1.5:
+                    self.y_control_team[i].speed_y = 0
+                if abs(self.y_control_team[i].speed_r) < 1.5:
+                    self.y_control_team[i].speed_r = 0
+                rules.append(0)
+                rules.append(self.y_control_team[i].speed_x)
+                rules.append(self.y_control_team[i].speed_y)
+                rules.append(self.y_control_team[i].speed_r)
+                rules.append(self.y_control_team[i].kick_up_)
+                rules.append(self.y_control_team[i].kick_forward_)
+                rules.append(self.y_control_team[i].auto_kick_)
+                rules.append(self.y_control_team[i].kicker_voltage_ // 2)
+                rules.append(self.y_control_team[i].dribbler_enable_)
+                rules.append(self.y_control_team[i].dribbler_speed_)
+                rules.append(self.y_control_team[i].kicker_charge_enable_)
+                rules.append(self.y_control_team[i].beep)
+                rules.append(0)
+        else:
+            for i in range(const.TEAM_ROBOTS_MAX_COUNT):
+                control_team = self.y_control_team if self.y_control_team[i].is_used() else self.b_control_team
+            
+                if self.y_control_team[i].is_used():
+                    pass
+                elif self.b_control_team[i].is_used():
+                    pass
+                else:
+                    for _ in range(13):
+                        rules.append(0)
+                    continue
+
+                if abs(control_team[i].speed_x) < 1.5:
+                    control_team[i].speed_x = 0
+                if abs(control_team[i].speed_y) < 1.5:
+                    control_team[i].speed_y = 0
+                if abs(control_team[i].speed_r) < 1.5:
+                    control_team[i].speed_r = 0
+                rules.append(0)
+                rules.append(control_team[i].speed_x)
+                rules.append(control_team[i].speed_y)
+                rules.append(control_team[i].speed_r)
+                rules.append(control_team[i].kick_forward_)
+                rules.append(control_team[i].kick_up_)
+                rules.append(control_team[i].auto_kick_)
+                rules.append(control_team[i].kicker_voltage_)
+                rules.append(control_team[i].dribbler_enable_)
+                rules.append(control_team[i].dribbler_speed_)
+                rules.append(control_team[i].kicker_charge_enable_)
+                rules.append(control_team[i].beep)
+                rules.append(0)
+            for _ in range(const.TEAM_ROBOTS_MAX_COUNT):
+                for _ in range(13):
+                    rules.append(0)
+
+        # rules = [15] * 13 * 32
         b = bytes()
         return b.join((struct.pack("d", rule) for rule in rules))
