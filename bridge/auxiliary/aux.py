@@ -4,61 +4,9 @@
 
 import math
 import typing
-
-from bridge.processors import const
 from typing import Optional
 
-
-class Graph:
-    """
-    Класс для работы с графами
-    """
-
-    def __init__(self, num_vertices: int) -> None:
-        """
-        Конструктор
-
-        Аллоцирует память под граф с num_vertices вершинами
-        """
-        self.num_vertices = num_vertices
-        self.graph = [[0] * num_vertices for _ in range(num_vertices)]
-
-    def add_edge(self, from_vertex: int, to_vertex: int, weight: int) -> None:
-        """
-        Добавить ребро графу
-        """
-        self.graph[from_vertex][to_vertex] = weight
-        self.graph[to_vertex][from_vertex] = weight
-
-    def dijkstra(self, start_vertex: int) -> list[float]:
-        """
-        Найти кратчайший путь в графе используя алгоритм Дейкстры
-        """
-        distances = [float("inf")] * self.num_vertices
-        distances[start_vertex] = 0
-        visited = [False] * self.num_vertices
-
-        for _ in range(self.num_vertices):
-            min_distance = float("inf")
-            min_vertex = -1
-
-            for v in range(self.num_vertices):
-                if not visited[v] and distances[v] < min_distance:
-                    min_distance = distances[v]
-                    min_vertex = v
-
-            visited[min_vertex] = True
-
-            for v in range(self.num_vertices):
-                if (
-                    not visited[v]
-                    and self.graph[min_vertex][v]
-                    and distances[min_vertex] != float("inf")
-                    and distances[min_vertex] + self.graph[min_vertex][v] < distances[v]
-                ):
-                    distances[v] = distances[min_vertex] + self.graph[min_vertex][v]
-
-        return distances
+from bridge import const
 
 
 class Point:
@@ -126,40 +74,11 @@ GRAVEYARD_POS = Point(0, const.GRAVEYARD_POS_X)
 FIELD_INF = Point(const.GRAVEYARD_POS_X, 0)
 
 
-class BobLine:
-    """
-    Прямая в виде Ax+By+C=0
-    """
-
-    def __init__(self, A: float, B: float, C: float):
-        self.A = A
-        self.B = B
-        self.C = C
-
-
 def dist2line(p1: Point, p2: Point, p: Point) -> float:
     """
     Рассчитать расстояние от точки p до прямой, образованной точками p1 и p2
     """
     return abs(vec_mult((p2 - p1).unity(), p - p1))
-
-def is_on_line(p1: Point, p2: Point, p: Point) -> float:
-    """
-    Определить, лежит ли высота из p на отрезок p1 - p2 в пределах этого отрезка
-    """
-    return abs(get_angle_between_points(p, p1, p2)) <= math.pi / 2 and abs(get_angle_between_points(p, p2, p1)) <= math.pi / 2
-
-
-def line_poly_intersect(p1: Point, p2: Point, points: list[Point]) -> bool:
-    """
-    Определить, пересекает ли линия p1-p2 полигон points
-    """
-    vec = p2 - p1
-    old_sign = sign(vec_mult(vec, points[0] - p1))
-    for p in points:
-        if old_sign != sign(vec_mult(vec, p - p1)):
-            return True
-    return False
 
 
 def segment_poly_intersect(p1: Point, p2: Point, points: list[Point]) -> typing.Optional[Point]:
@@ -173,6 +92,19 @@ def segment_poly_intersect(p1: Point, p2: Point, points: list[Point]) -> typing.
         if p is not None:
             return p
     return None
+
+
+def segments_poly_intersect(p1: Point, p2: Point, points: list[Point], is_inf: str = "S") -> list[Point]:
+    """
+    Определить, пересекает ли прямая p1-p2 полигон points
+    Вернуть массив точек
+    """
+    inters = []
+    for i in range(-1, len(points) - 1):
+        inter = get_line_intersection(p1, p2, points[i], points[i + 1], is_inf+"S")
+        if inter is not None:
+            inters.append(inter)
+    return inters
 
 
 def is_point_inside_poly(p: Point, points: list[Point]) -> bool:
@@ -215,7 +147,11 @@ def average_angle(angles: list[float]) -> float:
 
 
 def get_line_intersection(
-    line1_start: Point, line1_end: Point, line2_start: Point, line2_end: Point, is_inf: str = "SS"
+    line1_start: Point,
+    line1_end: Point,
+    line2_start: Point,
+    line2_end: Point,
+    is_inf: str = "SS",
 ) -> typing.Optional[Point]:
     """
     Получить точку пересечения отрезков или прямых
@@ -284,10 +220,13 @@ def rotate(p: Point, angle: float) -> Point:
     """
     Повернуть вектор p на угол angle
     """
-    return Point(p.x * math.cos(angle) - p.y * math.sin(angle), p.y * math.cos(angle) + p.x * math.sin(angle))
+    return Point(
+        p.x * math.cos(angle) - p.y * math.sin(angle),
+        p.y * math.cos(angle) + p.x * math.sin(angle),
+    )
 
 
-def find_nearest_point(p: Point, points: list[Point], exclude: typing.Optional[list[Point]] = None) -> Point:  #
+def find_nearest_point(p: Point, points: list[Point], exclude: Optional[list[Point]] = None) -> Point:  #
     """
     Найти ближайшую точку к p из облака points, игнорируя точки exclude
     """
@@ -316,7 +255,7 @@ def wind_down_angle(angle: float) -> float:
 
 def closest_point_on_line(point1: Point, point2: Point, point: Point, is_inf: str = "S") -> Point:
     """
-    Получить ближайшую к точке point точку на линии point1-point2
+    Получить ближайшую к точке point току на линии point1-point2
 
     is_inf задает ограничения на точку пересечения.
 
@@ -341,7 +280,10 @@ def closest_point_on_line(point1: Point, point2: Point, point: Point, is_inf: st
     if dot_product >= line_length and is_inf == "S":
         return point2
 
-    closest_point = Point(point1.x + line_direction[0] * dot_product, point1.y + line_direction[1] * dot_product)
+    closest_point = Point(
+        point1.x + line_direction[0] * dot_product,
+        point1.y + line_direction[1] * dot_product,
+    )
 
     return closest_point
 
@@ -376,12 +318,6 @@ def minmax(x: float, a: float, b: Optional[float] = None) -> float:
     return min(max(x, a), b)
 
 
-def is_in_range(x: float, a: float, b: float) -> bool:
-    """
-    проверяет, лежит ли x в диапазоне [a, b]
-    """
-    return x == minmax(x, a, b)
-
 def angle_to_point(point1: Point, point2: Point) -> float:
     """
     Получить угол вектора p = point2 - point1
@@ -398,34 +334,9 @@ def sign(num: float) -> float:
     return num / abs(num)
 
 
-def det(a: float, b: float, c: float, d: float) -> float:
-    """
-    Получить определитель матрицы:
-    |a b|
-    |c d|
-    """
-    return a * d - b * c
-
-
-def line_intersect(m: BobLine, bots: list[BobLine]) -> list[Point]:
-    """
-    TODO написать доку
-    """
-    result = []
-    for n in bots:
-        mat_inv = det(m.A, m.B, n.A, n.B)
-        res = Point(0, 0)
-        if abs(mat_inv) < 1e-9:
-            return []
-        res.x = -det(m.C, m.B, n.C, n.B) / mat_inv
-        res.y = -det(m.A, m.C, n.A, n.C) / mat_inv
-        result.append(res)
-    return result
-
-
 def nearest_point_on_poly(p: Point, poly: list[Point]) -> Point:
     """
-    TODO
+    Получить ближайшую точку многоугольника poly к точке p
     """
     min_ = 10e10
     ans = Point(0, 0)
@@ -436,6 +347,13 @@ def nearest_point_on_poly(p: Point, poly: list[Point]) -> Point:
             min_ = d
             ans = pnt
     return ans
+
+
+def map_num(arg: float, a: float, b: float, x: float, y: float) -> float:
+    """
+    приводит число из диапазона a - b к диапазону x - y
+    """
+    return (arg - a) * (y - x) / (b - a) + x
 
 
 def in_place(point: Point, end: Point, epsilon: float) -> bool:
@@ -463,13 +381,13 @@ def circles_inter(p0: Point, p1: Point, r0: float, r1: float) -> tuple[Point, Po
     return Point(x3, y3), Point(x4, y4)
 
 
-def get_tangent_points(point0: Point, point1: Point, r: float) -> Optional[list[Point]]:
+def get_tangent_points(point0: Point, point1: Point, r: float) -> list[Point]:
     """
     Get tangents (point0 - center of circle)
     """
     d = dist(point0, point1)
     if d < r:
-        return None
+        return []
     elif d == r:
         return [point1]
     else:
@@ -490,21 +408,22 @@ def cosine_theorem(a: float, b: float, angle: float) -> float:
     """Теорема косинусов"""
     return math.sqrt(a * a + b * b - 2 * a * b * math.cos(angle))
 
-def line_circle_intersect(x1: Point, x2: Point, c: Point, radius: float) -> Optional[list[Point]]:
-    """TODO"""
+
+def line_circle_intersect(x1: Point, x2: Point, c: Point, radius: float, is_inf: str = "S") -> Optional[list[Point]]:
+    """Получить пересечение прямой и окружности"""
     h = closest_point_on_line(x1, x2, c, "L")
     if radius < dist(c, h):
         return None
     elif radius == dist(c, h):
         return [h]
 
-    d = math.sqrt(radius ** 2 -  dist(c, h) ** 2)
+    d = math.sqrt(radius**2 - dist(c, h) ** 2)
     vec = (x2 - x1).unity() * d
     p1 = h + vec
     p2 = h - vec
 
-    c1 = closest_point_on_line(x1, x2, p1)
-    c2 = closest_point_on_line(x1, x2, p2)
+    c1 = closest_point_on_line(x1, x2, p1, is_inf)
+    c2 = closest_point_on_line(x1, x2, p2, is_inf)
 
     if p1 != c1 and p2 != c2:
         return None
@@ -514,36 +433,159 @@ def line_circle_intersect(x1: Point, x2: Point, c: Point, radius: float) -> Opti
         return [p1]
     return [p1, p2]
 
+
+def poly_circle_intersect(poly: list[Point], c: Point, radius: float) -> list[Point]:
+    """
+    Вернуть пересечение окружности с многоугольником
+    """
+    mas = []
+    for i, _ in enumerate(poly):
+        now_points = line_circle_intersect(_, poly[i - 1], c, radius)
+        if now_points is not None:
+            mas.extend(now_points)
+    return mas
+
+
 def is_point_inside_circle(a: Point, c: Point, radius: float) -> bool:
     """Return TRUE if point inside circle"""
     return dist(a, c) < radius
+
 
 def nearest_point_on_circle(a: Point, c: Point, radius: float) -> Point:
     """Return nearest point in circle"""
     return c + (a - c).unity() * radius
 
-def range_minus(mns0: list, mns1: list, may_be_smaller: bool = True) -> list:
+
+def is_on_line(p1: Point, p2: Point, p: Point) -> float:
     """
-    вычитает из списка множеств mns0 список множеств mns1. множества задаются как (min, max) - где min, max - крайние значения. 
+    Определить, лежит ли высота из p на отрезок p1 - p2 в пределах этого отрезка
+    """
+    return (
+        abs(get_angle_between_points(p, p1, p2)) <= math.pi / 2 and abs(get_angle_between_points(p, p2, p1)) <= math.pi / 2
+    )
+
+
+def closest_point_on_poly(p1: Point, p2: Point, points: list[Point], is_inf: str="S") -> list[Point]:
+    """
+    возвращает ближайшую точку полигона к линии
+    """
+    closest_p = segments_poly_intersect(p1, p2, points, is_inf)
+    base_p = None
+    if not closest_p:
+        closest_p = [points[0]]
+        for i in points:
+            if dist(closest_point_on_line(p1, p2, i, is_inf), i) < dist(closest_point_on_line(p1, p2, closest_p[0], is_inf), closest_p[0]):
+                closest_p[0] = i
+        se_ps = []
+        if is_inf != "L":
+            se_ps.append(p1)
+        if is_inf == "S":
+            se_ps.append(p2)
+        for k in se_ps:
+            for j, _ in enumerate(points):
+                if not base_p:
+                    if dist(closest_point_on_line(points[j-1], _, k), k) < dist(closest_point_on_line(p1, p2, closest_p[0], is_inf), closest_p[0]):
+                        closest_p[0] = closest_point_on_line(points[j-1], _, k)
+                        base_p = k
+                else:
+                    if dist(closest_point_on_line(points[j-1], _, k), k) < dist(base_p, closest_p[0]):
+                        closest_p[0] = closest_point_on_line(points[j-1], _, k)
+                        base_p = k
+    return closest_p
+
+
+def is_in_range(x: float, r: list) -> bool:
+    """
+    проверяет, лежит ли x в диапазоне [a, b]
+    """
+    return x == minmax(x, r[0], r[1])
+
+
+def range_minus(mns0: list, mns1: list) -> list[list[float]]:
+    """
+    Вычитает из списка множеств mns0 список множеств mns1.
+    множества задаются как (min, max) - где min, max - крайние значения.
     не вычитает из mns0[x] mns1[y], если включено may_be_smaller и вычитаемый диапазон меньше
     """
     i = 0
     while i < len(mns1):
         j = 0
         while j < len(mns0):
-            bigger = mns1[i][1] - mns1[i][0] >= mns0[j][1] - mns0[j][0]
-            if is_in_range(mns1[i][0], mns0[j][0], mns0[j][1]) and not is_in_range(mns1[i][1], mns0[j][0], mns0[j][1]) and (may_be_smaller or bigger):
+            if is_in_range(mns1[i][0], mns0[j]) and not is_in_range(mns1[i][1], mns0[j]):
                 mns0[j] = (mns0[j][0], mns1[i][0])
-            elif not is_in_range(mns1[i][0], mns0[j][0], mns0[j][1]) and is_in_range(mns1[i][1], mns0[j][0], mns0[j][1]) and (may_be_smaller or bigger):
+            elif not is_in_range(mns1[i][0], mns0[j]) and is_in_range(mns1[i][1], mns0[j]):
                 mns0[j] = (mns1[i][1], mns0[j][1])
-            elif is_in_range(mns1[i][0], mns0[j][0], mns0[j][1]) and is_in_range(mns1[i][1], mns0[j][0], mns0[j][1]) and (may_be_smaller or bigger):
+            elif is_in_range(mns1[i][0], mns0[j]) and is_in_range(mns1[i][1], mns0[j]):
                 mns0.insert(j + 1, (mns1[i][1], mns0[j][1]))
                 mns0[j] = (mns0[j][0], mns1[i][0])
                 j += 1
-            elif is_in_range(mns0[j][0], mns1[i][0], mns1[i][1]) and is_in_range(mns0[j][1], mns1[i][0], mns1[i][1]) and (may_be_smaller or bigger):
+            elif is_in_range(mns0[j][0], mns1[i]) and is_in_range(mns0[j][1], mns1[i]):
                 mns0.pop(j)
                 j -= 1
             j += 1
         i += 1
     return mns0
 
+
+def range_plus(mns: list) -> list:
+    """
+    суммирует множества
+    """
+    return range_minus([[-10e10, 10e10]], range_minus([[-10e10, 10e10]], mns))
+
+
+def get_minmax_idxs(numbers: list[float], mode: str, dp: float = 0) -> list[int]:
+    """
+    Функция ищет в списке крайнее значение(я) и возвращает его(их) индекс(ы) в списке.
+    Режимы: 'min', 'max'.
+    """
+    idxs_return: list[int] = []
+    for idx, number in enumerate(numbers):
+        if idxs_return:
+            if abs(number - numbers[idxs_return[0]]) < numbers[idxs_return[0]] * dp / 100:
+                idxs_return.append(idx)
+            elif (mode == "min" and number < numbers[idxs_return[0]]) or (
+                mode == "max" and number > numbers[idxs_return[0]]
+            ):
+                idxs_return = [idx]
+        else:
+            idxs_return.append(idx)
+    return idxs_return
+
+
+def tangent_in_point(center: Point, tang_point: Point) -> Point:
+    """
+    Возвращает вторую точку прямой, через которую проходит касательная к center через tang_point
+    """
+    vec = center - tang_point
+    vec = rotate(vec, math.pi / 2)
+    return tang_point + vec
+
+
+def angle_to_circles(center1: Point, r1: float, center2: Point, r2: float, angle: float) -> Optional[list[Point]]:
+    """
+    Возвращает точку на максимальном расстоянии от окружностей, чтобы касательные образовывали конкретный угол.
+    """
+    if dist(center1, center2) < r1 + r2 or angle == 0:
+        return None
+    if dist(center1, center2) == r1 + r2:
+        return [(center2 - center1).unity() * r1 + center1]
+    if r1 > 0:
+        vec1 = rotate((center2 - center1).unity() * r1, angle / 2) + center1
+        vec3 = tangent_in_point(center1, vec1)
+    else:
+        vec1 = center1
+        vec3 = rotate((center2 - center1).unity(), math.pi / 2 + angle / 2) + center1
+    if r2 > 0:
+        vec2 = rotate((center1 - center2).unity() * r2, -angle / 2) + center2
+        vec4 = tangent_in_point(center2, vec2)
+    else:
+        vec2 = center2
+        vec4 = rotate((center1 - center2).unity(), -(math.pi / 2 + angle / 2)) + center2
+    point1 = get_line_intersection(vec1, vec3, vec2, vec4, "LL")
+    point2 = None
+    if point1 is not None:
+        help_point = closest_point_on_line(center1, center2, point1)
+        point2 = point_on_line(point1, help_point, dist(point1, help_point) * 2)
+        return [point1, point2]
+    return None

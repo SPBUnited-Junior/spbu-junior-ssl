@@ -1,9 +1,14 @@
+"""Processor to get referee commands"""
+
 from enum import Enum
-from bridge.processors.const import Color
+from typing import Optional
+
+from bridge.const import Color
 
 
 class State(Enum):
     """Класс с состояниями игры"""
+
     HALT = 0
     TIMEOUT = 1
     STOP = 2
@@ -18,6 +23,7 @@ class State(Enum):
 
 class Command(Enum):
     """Класс с командами от судей"""
+
     HALT = 0
     STOP = 1
     FORCE_START = 2
@@ -37,11 +43,12 @@ class Command(Enum):
 CommandMap = {command.value: command for command in Command}
 
 
-
 class StateMachine:
-    def __init__(self, initial_state:State = State.HALT) -> None:
+    """Machine witch get command and return next state"""
+
+    def __init__(self, initial_state: State = State.HALT) -> None:
         self.__state = initial_state
-        self.__transitions = {}
+        self.__transitions: dict = {}
         self.__active = Color.ALL
 
         self.add_transition(State.HALT, State.STOP, Command.STOP)
@@ -54,6 +61,7 @@ class StateMachine:
         for state in State:
             self.add_transition(state, State.HALT, Command.HALT)
             self.add_transition(state, State.STOP, Command.STOP)
+            self.add_transition(state, State.TIMEOUT, Command.TIMEOUT)
 
         self.add_transition(State.TIMEOUT, State.STOP, Command.STOP)
 
@@ -62,7 +70,6 @@ class StateMachine:
         self.add_transition(State.STOP, State.PREPARE_PENALTY, Command.PREPARE_PENALTY)
         self.add_transition(State.STOP, State.FREE_KICK, Command.FREE_KICK)
         self.add_transition(State.STOP, State.RUN, Command.FORCE_START)
-        self.add_transition(State.STOP, State.TIMEOUT, Command.TIMEOUT)
 
         self.add_transition(State.PREPARE_KICKOFF, State.KICKOFF, Command.NORMAL_START)
 
@@ -82,23 +89,28 @@ class StateMachine:
         self.add_transition(State.RUN, State.STOP, Command.STOP)
 
     def add_transition(self, from_state: State, to_state: State, transition: Command) -> None:
+        """Add new transition from state"""
         if from_state not in self.__transitions:
             self.__transitions[from_state] = {}
         self.__transitions[from_state][transition] = to_state
 
     def make_transition(self, transition: int) -> None:
+        """Make a transition (for user)"""
         self.make_transition_(CommandMap.get(transition))
 
-    def make_transition_(self, transition: Command) -> None:
+    def make_transition_(self, transition: Optional[Command]) -> None:
+        """Make a transition (for the program)"""
         if transition in self.__transitions[self.__state]:
             self.__state = self.__transitions[self.__state][transition]
         else:
             raise ValueError(f"No transition '{transition}' from state '{self.__state}'")
 
-    def get_possible_transitions(self):
+    def get_possible_transitions(self) -> list:
+        """Returns a list with all possible transitions"""
         return list(self.__transitions[self.__state].keys()) if self.__state in self.__transitions else []
 
     def active_team(self, num: int) -> None:
+        """Set active team"""
         if num == 0:
             self.__active = Color.ALL
         elif num == 1:
@@ -107,7 +119,8 @@ class StateMachine:
             self.__active = Color.YELLOW
 
     def get_state(self) -> tuple[State, Color]:
+        """Returns the current state"""
         return self.__state, self.__active
 
     def __str__(self) -> str:
-        return f'State: {self.__state}, Active: {self.__active}'
+        return f"State: {self.__state}, Active: {self.__active}"

@@ -4,24 +4,37 @@
 
 from enum import Enum
 
+
 class Color(Enum):
     """Класс с цветами"""
+
     ALL = 0
     BLUE = 1
     YELLOW = 2
 
+
 ##################################################
 # GAME SETTING CONSTS
+DIV = "C"
 COLOR = Color.YELLOW
 POLARITY = 1  # -1 если ворота синих на +x; 1 если ворота синих на -x
 
 IS_SIMULATOR_USED = False
-IS_DRIBLER_USED = False #dribler and upper_kick
-SELF_PLAY = True
+IS_DRIBBLER_USED = False  # dribbler and upper_kick
+SELF_PLAY = False
 
-GK = 14
-PENALTY_KICKER = 13
-ENEMY_GK = 1
+GK = 0
+PENALTY_KICKER = 1
+ENEMY_GK = 2
+
+DELTA_ANGLE = 0.15
+# погрешность кикера
+K_VEL = 1
+TRUE_ANGLE = 0.15
+K_PASS = [8, 350, 0.001, 0.002]
+PASS_PS = [45, 30]
+# Примерные скорости робота и мяча для расчета погрешности
+DEFENSE_TIME = 0.5
 
 CAMERAS_COUNT: int = 4
 MAX_BALLS_IN_CAMERA: int = 64
@@ -34,6 +47,8 @@ SINGLE_ROBOT_PACKET_SIZE = 5
 ROBOT_TEAM_PACKET_SIZE: int = SINGLE_ROBOT_PACKET_SIZE * TEAM_ROBOTS_MAX_COUNT
 
 GEOMETRY_PACKET_SIZE: int = 2
+
+SENDING_ACTION_POINTS = 3
 
 CONTROL_MAPPING: dict[int, int] = {
     0: 0,
@@ -53,7 +68,7 @@ CONTROL_MAPPING: dict[int, int] = {
     14: 14,
     15: 15,
 }
-REVERSED_KICK: list[int] = [13]
+REVERSED_KICK: list[int] = []
 
 for i in range(TEAM_ROBOTS_MAX_COUNT):
     try:
@@ -62,6 +77,9 @@ for i in range(TEAM_ROBOTS_MAX_COUNT):
         CONTROL_MAPPING[i] = -1
 
 TOPIC_SINK = "control-sink"
+FIELD_TOPIC = "field-topic"
+IMAGE_TOPIC = "image-topic"
+POINTS_TOPIC = "points-topic"
 ##################################################
 
 ##################################################
@@ -73,44 +91,77 @@ Ts = 0.05  # s
 # MAX_SPEED_R = 50
 # ACCELERATION = 3
 # BASE_KICKER_VOLTAGE = 7.0
-MAX_SPEED = 1000
-MAX_SPEED_R = 30
-SOFT_MAX_SPEED = 750
+MAX_SPEED = 750
+MAX_STOP_SPEED = 2250
+MAX_SPEED_R = 45
+SOFT_MAX_SPEED = 500
 SOFT_MAX_SPEED_R = 16
 ACCELERATION = 3
 BASE_KICKER_VOLTAGE = 7.0
+DRAW = 0
 
 R_KP = 7
 R_KD = 0
 KP = 0.1
 
-INTERCEPT_SPEED = 50
+INTERCEPT_SPEED = 40
 GK_PEN_KICKOUT_SPEED = 500
 ##################################################
 # GEOMETRY CONSTS
 
-BALL_R = 50
+BALL_R = 30
 ROBOT_R = 100
+
+WALL_DIST = 50
+MIN_ENEMY_DIST = 50
+MIN_PASS_DIST = 2000
+NORM_PASS_DIST = 3000
+MIN_ACTION_DIST = 1000
+
 GRAVEYARD_POS_X = -10000
+ACTION_DIST = 200
+LIE_DIST = 220
 
-GOAL_DX = 2250  # width / 2
-GOAL_DY = 800
-GOAL_PEN_DX = 500
-GOAL_PEN_DY = 1350
-
+GOAL_DX = 4500
+HALF_HEIGHT = 3000
+GOAL_PEN_DX = 1000
+GOAL_PEN_DY = 2000
+if DIV == "C":
+    GOAL_DX = 2250
+    GOAL_DY = 800
+    GOAL_PEN_DX = 500
+    GOAL_PEN_DY = 1500
+    HALF_HEIGHT = 1500
+DIAGONAL = 2 * (HALF_HEIGHT**2 + GOAL_DX**2) ** 0.5
 GK_FORW = 200 + ROBOT_R
-KICK_ALIGN_DIST = 200
+KICK_ALIGN_DIST = 150
 GRAB_ALIGN_DIST = 130
 KICK_ALIGN_DIST_MULT = 1.5
-KICK_ALIGN_ANGLE = 0.07
-KICK_ALIGN_OFFSET = 20
+KICK_ALIGN_ANGLE = 0.04
+KICK_ALIGN_OFFSET = 25
 BALL_GRABBED_DIST = 115
 BALL_GRABBED_ANGLE = 0.8
+SUMM_DELAY = 0.4
+PASS_BALL_DIST = 400
+FIX_KICK_DIST = 170
+DELTA_DIST = 50
+PRIORITY_DIST = 150
+K_PASS_DIST = 1.5
+K_BALL_DIST = 1.5
 
 # ROUTE CONSTS
-KEEP_BALL_DIST = 500 + ROBOT_R
+KEEP_BALL_DIST = 500 + ROBOT_R + BALL_R
 
 # SOME STRATEGY TRASH
 MIN_GOOD_ANGLE = 90
 ROBOT_SPEED = 1.5
 FULL_DELAY = 0.16
+
+
+# VOLTAGES
+VOLTAGE_PASS = 5
+VOLTAGE_SHOOT = 10
+VOLTAGE_UP = 8
+VOLTAGE_ZERO = min(VOLTAGE_PASS, VOLTAGE_SHOOT, VOLTAGE_UP)
+
+K_TIMEOUT = 0.5

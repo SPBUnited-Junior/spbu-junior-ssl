@@ -4,7 +4,7 @@
 
 import math
 
-import bridge.processors.auxiliary as aux
+from bridge.auxiliary import aux
 
 
 def shortesthull(p1: aux.Point, p2: aux.Point, points: list[aux.Point]) -> list[aux.Point]:

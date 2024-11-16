@@ -1,14 +1,13 @@
 """
 Описание полей и интерфейсов взаимодействия с роботом
 """
+
 import math
 import typing
 
-import bridge.processors.auxiliary as aux
-import bridge.processors.const as const
-import bridge.processors.entity as entity
-import bridge.processors.tau as tau
-import bridge.processors.waypoint as wp
+import bridge.router.waypoint as wp
+from bridge import const
+from bridge.auxiliary import aux, entity, tau
 
 
 class Robot(entity.Entity):
@@ -16,7 +15,15 @@ class Robot(entity.Entity):
     Описание робота
     """
 
-    def __init__(self, pos: aux.Point, angle: float, R: float, color: const.Color, r_id: int, ctrl_id: int) -> None:
+    def __init__(
+        self,
+        pos: aux.Point,
+        angle: float,
+        R: float,
+        color: const.Color,
+        r_id: int,
+        ctrl_id: int,
+    ) -> None:
         super().__init__(pos, angle, R)
 
         self.r_id = r_id
@@ -36,12 +43,11 @@ class Robot(entity.Entity):
         self.dribbler_speed_ = 0
         self.kicker_charge_enable_ = 1
         self.beep = 0
-        self.role = 0
 
         # v! SIM
         if const.IS_SIMULATOR_USED:
-            self.k_xx = -833 / 20
-            self.k_yy = 833 / 20
+            self.k_xx = -833 / 100
+            self.k_yy = 833 / 100
             self.k_ww = 1.25 / 20
             self.k_wy = -0.001
             self.t_wy = 0.15
@@ -50,8 +56,8 @@ class Robot(entity.Entity):
 
         # v! REAL
         else:
-            self.k_xx = -10
-            self.k_yy = 10
+            self.k_xx = -2
+            self.k_yy = 2
             self.k_ww = 0.08
             self.k_wy = 0
             self.t_wy = 0.15
@@ -69,28 +75,22 @@ class Robot(entity.Entity):
         # self.a0Flp = tau.FOLP(self.a0TF, const.Ts)
 
         # !v REAL
-        gains_full = [3, 0.18, 0, const.MAX_SPEED]
-        gains_soft = [3, 0.18, 0.1, const.SOFT_MAX_SPEED]
-        a_gains_full = [20, 0, 0, const.MAX_SPEED_R]
-        # gains_soft = [10, 0.32, 0, const.SOFT_MAX_SPEED]
-        # gains_soft = gains_full
+        gains_full = [6, 0.2, 0, const.MAX_SPEED]
+        gains_soft = [5, 0.35, 0.1, const.SOFT_MAX_SPEED]
+        a_gains_full = [8, 0.1, 0, const.MAX_SPEED_R]
+        if self.r_id < 9:
+
+            gains_full = [2.2, 0, 0, const.MAX_SPEED]
+            gains_soft = [1.2, 0, 0, const.SOFT_MAX_SPEED]
+            a_gains_full = [2, 0, 0, const.MAX_SPEED_R]
         if const.IS_SIMULATOR_USED:
-            gains_full = [3, 0.35, 0, const.MAX_SPEED]
-            gains_soft = [5, 0.35, 0, const.SOFT_MAX_SPEED]
-            a_gains_full = [2, 0.1, 0.1, const.MAX_SPEED_R]  # 4, 0.1, 0.1
+            # gains_full = [8, 0.35, 0, const.MAX_SPEED]
+            gains_full = [2.5, 0.08, 0, const.MAX_SPEED]
+            gains_soft = [2.5, 0.08, 0, const.SOFT_MAX_SPEED]
+            a_gains_full = [1, 0.1, 0.1, const.MAX_SPEED_R]  # 4, 0.1, 0.1
         # a_gains_soft = [4, 0.07, 8, const.SOFT_MAX_SPEED_R]
         a_gains_soft = a_gains_full
-        # else:
-        #     gains_full = [6, 0.8, 0, const.MAX_SPEED]
-        #     gains_soft = [6, 1, 0.1, const.SOFT_MAX_SPEED]
-        #     a_gains_full = [6, 0.1, 0, const.MAX_SPEED_R]
-        #     a_gains_soft = [2, 0.07, 1, const.SOFT_MAX_SPEED_R]
 
-        # !v SIM
-        # gains_full = [2, 0.3, 0, const.MAX_SPEED]
-        # gains_soft = [0.5, 0.1, 0, const.SOFT_MAX_SPEED]
-        # a_gains_full = [2, 0.1, 0.1, const.MAX_SPEED_R]
-        # a_gains_soft = [1, 0.07, 0, const.SOFT_MAX_SPEED_R]
 
         self.pos_reg_x = tau.PISD(
             const.Ts,
@@ -117,9 +117,17 @@ class Robot(entity.Entity):
         self.is_kick_committed = False
 
     def __eq__(self, robo: typing.Any) -> bool:
-        if not isinstance(robo, Robot):
+        try:
+            return self.r_id == robo.r_id and self.color == robo.color
+        except AttributeError:
             return False
-        return self.r_id == robo.r_id and self.color == robo.color
+
+    def to_entity(self) -> entity.Entity:
+        """Преобразовать в объъект"""
+        ent = entity.Entity(self._pos, self._angle, self._radius)
+        ent._vel = self._vel
+        # ent._acc = self._acc
+        return ent
 
     def used(self, a: int) -> None:
         """
@@ -183,6 +191,7 @@ class Robot(entity.Entity):
         self.kicker_charge_enable_ = robot.kicker_charge_enable_
         self.beep = robot.beep
         self.__is_used = robot.is_used()
+        self.last_update_ = robot.last_update_
 
     def clear_fields(self) -> None:
         """
@@ -211,13 +220,17 @@ class Robot(entity.Entity):
         is_offset = (
             aux.dist(
                 aux.closest_point_on_line(
-                    target.pos, target.pos - aux.rotate(aux.RIGHT, target.angle) * const.KICK_ALIGN_DIST, self._pos
+                    target.pos,
+                    target.pos - aux.rotate(aux.RIGHT, target.angle) * const.KICK_ALIGN_DIST,
+                    self._pos,
                 ),
                 self._pos,
             )
             < const.KICK_ALIGN_OFFSET * commit_scale
         )
         is_aligned = is_dist and is_angle and is_offset
+
+        # print("is aligned:", is_dist, is_angle, is_offset)
 
         if is_aligned:
             self.is_kick_committed = True
@@ -242,6 +255,7 @@ class Robot(entity.Entity):
         """
         self.speed_x = self.xx_flp.process(1 / self.k_xx * aux.rotate(vel, -self._angle).x)
         self.speed_y = self.yy_flp.process(1 / self.k_yy * aux.rotate(vel, -self._angle).y)
+        # print(vel.mag(), aux.Point(self.speed_x, self.speed_y).mag())
 
         # self.speed_x = self.xx_flp.process(1 / self.k_xx * vel.x)
         # self.speed_y = self.yy_flp.process(1 / self.k_yy * vel.y)
@@ -256,10 +270,8 @@ class Robot(entity.Entity):
         vec_speed = math.sqrt(self.speed_x**2 + self.speed_y**2)
         r_speed = abs(self.speed_r)
 
-        if const.IS_SIMULATOR_USED:
-            vec_speed *= (const.MAX_SPEED_R - r_speed) / const.MAX_SPEED_R
-        else:
-            vec_speed *= ((const.MAX_SPEED_R - r_speed) / const.MAX_SPEED_R) ** 4
+        if not const.IS_SIMULATOR_USED:
+            vec_speed *= ((const.MAX_SPEED_R - r_speed) / const.MAX_SPEED_R) ** 2
 
         ang = math.atan2(self.speed_y, self.speed_x)
         self.speed_x = vec_speed * math.cos(ang)

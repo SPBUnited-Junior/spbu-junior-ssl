@@ -9,7 +9,7 @@
 
 from enum import Enum
 
-import bridge.processors.auxiliary as aux
+from bridge.auxiliary import aux
 
 
 class WType(Enum):
@@ -29,10 +29,9 @@ class WType(Enum):
     S_VELOCITY = 8  # Разворачиваться с мячом
     # waypoint.pos - скорость; waypoint.angle - угловая скорость
     S_BALL_PASS = 9  # Give pass to point
-
     R_PASSTHROUGH = 10  # Двигаться в точку не останавливаясь (промежуточная точка пути)
     R_BALL_ALIGN = 11  # Выровняться напротив мяча, приготовившись его захватить
-    R_IGNORE_GOAl_HULL = 12
+    R_IGNORE_GOAl_HULL = 12 #Игнорировать оболчки поля (обе)
 
     T_GRAVEYARD = 100
 

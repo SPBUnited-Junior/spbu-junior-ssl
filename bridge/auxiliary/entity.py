@@ -11,8 +11,12 @@
 
 from time import time
 
-import bridge.processors.auxiliary as aux
-from bridge.processors import const, tau
+import numpy as np
+from filterpy.common import Q_discrete_white_noise
+from filterpy.kalman import KalmanFilter
+
+from bridge import const
+from bridge.auxiliary import aux, tau
 
 
 class Entity:
@@ -35,19 +39,17 @@ class Entity:
 
         self._pos = pos
         self._vel = aux.Point(0, 0)
-        self._vel_fx = tau.FOD(T, Ts)
-        self._vel_fy = tau.FOD(T, Ts)
-        self._acc = aux.Point(0, 0)
-        self._acc_fx = tau.FOD(T, Ts)
-        self._acc_fy = tau.FOD(T, Ts)
+
+        self.kf = KalmanFilter(dim_x=4, dim_z=2)
+        self.kf.H = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
+        self.kf.R *= 0.0005
+        self.kf.P *= 900000.0
+
         self._angle = angle
         self._anglevel = 0.0
         self._vel_fr = tau.FOD(T, Ts, True)
         self._radius = R
-        self.last_update_ = 0.0
-
-        self.__launch_flag = False
-        self.__launch_timer = time()
+        self.last_update_ = time()
 
     def update(self, pos: aux.Point, angle: float, t: float) -> None:
         """
@@ -56,17 +58,20 @@ class Entity:
 
         TODO Реализовать расчет скоростей и ускорений
         """
+        dt = t - self.last_update_
+        self.kf.F = np.array([[1, dt, 0, 0], [0, 1, 0, 0], [0, 0, 1, dt], [0, 0, 0, 1]])
+        self.kf.Q = Q_discrete_white_noise(dim=2, dt=dt, var=70, block_size=2)
+        self.kf.predict()
+        self.kf.update(np.array([pos.x, pos.y]))
+        state = self.kf.x.copy()
+        self._pos = aux.Point(state[0].item(), state[2].item())
+        self._vel = aux.Point(state[1].item(), state[3].item())
+
         self._pos = pos
+
         self._angle = angle
-        self._vel.x = self._vel_fx.process(self._pos.x)
-        self._vel.y = self._vel_fy.process(self._pos.y)
-        self._acc.x = self._acc_fx.process(self._vel.x)
-        self._acc.y = self._acc_fy.process(self._vel.y)
         self._anglevel = self._vel_fr.process(self._angle)
         self.last_update_ = t
-
-        if not self.__launch_flag and time() - self.__launch_timer > 5:
-             self.__launch_flag = True
 
     def last_update(self) -> float:
         """
@@ -84,13 +89,11 @@ class Entity:
 
     def get_vel(self) -> aux.Point:
         """Геттер скорости"""
-        if not self.__launch_flag:
-            return self._vel * 0
         return self._vel
 
-    def get_acc(self) -> aux.Point:
-        """Геттер ускорения"""
-        return self._acc
+    # def get_acc(self) -> aux.Point:
+    #     """Геттер ускорения"""
+    #     return self._acc
 
     def get_angle(self) -> float:
         """Геттер угла"""

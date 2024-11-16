@@ -5,7 +5,7 @@
 import math
 from enum import Enum, auto
 
-import bridge.processors.auxiliary as aux
+from bridge.auxiliary.aux import minmax
 
 
 class FOD:
@@ -171,26 +171,31 @@ class PISD:
         self.__int = Integrator(dT)
         self.__out = 0.0
         self.__mode = Mode.NORMAL
+        self.__be_slow = -1
 
-    def select_mode(self, mode: Mode) -> None:
+    def select_mode(self, mode: Mode, be_slow: int = -1) -> None:
         """
         Выбрать набор коэффициентов регулятора
         """
         self.__mode = mode
+        self.__be_slow = be_slow
         self.__int.reset()
 
     def __get_gains(self) -> tuple[float, float, float, float]:
         """
         Получить коэффициенты регулятора
         """
+        max_out = self.__max_out[self.__mode.value]
+        if self.__be_slow > 0:
+            max_out = min(self.__be_slow, max_out)
         return (
             self.__gain[self.__mode.value],
             self.__kd[self.__mode.value],
             self.__ki[self.__mode.value],
-            self.__max_out[self.__mode.value],
+            max_out,
         )
 
-    def process(self, xerr: float, x_i: float) -> float:
+    def process(self, xerr: float, x_i: float, k_angle: float = 1) -> float:
         """
         Рассчитать следующий тик регулятора
         """
@@ -199,7 +204,7 @@ class PISD:
         s = xerr + k_d * x_i + k_i * self.__int.get_val()
         u = gain * s
 
-        u_clipped = aux.minmax(u, max_out)
+        u_clipped = minmax(u, max_out * k_angle)
 
         if u != u_clipped:
             self.__int.process(xerr + k_d * x_i)
@@ -232,7 +237,7 @@ class RateLimiter:
         """
         Рассчитать следующий тик звена
         """
-        u = aux.minmax(self.__k * (x - self.__out), self.__max_der)
+        u = minmax(self.__k * (x - self.__out), self.__max_der)
         self.__out = self.__int.process(u)
         return self.__out
 
